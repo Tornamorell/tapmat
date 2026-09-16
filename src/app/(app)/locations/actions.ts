@@ -85,6 +85,17 @@ export async function updateLocation(id: string, formData: FormData) {
   revalidatePath(`/locations/${id}`);
 }
 
+/** The location's notes (the «Notas» on its page): free text; empty clears them. */
+export async function updateLocationNotes(id: string, notes: string) {
+  const user = await requireUser();
+  const locationId = z.uuid().parse(id);
+  await ownedLocation(user.id, locationId);
+  const value = z.string().max(5000).parse(notes).trim() || null;
+  await db.update(locations).set({ notes: value }).where(eq(locations.id, locationId));
+  refresh();
+  revalidatePath(`/locations/${locationId}`);
+}
+
 /** Deletes the location; its copies stay in the inventory, without location. */
 export async function deleteLocation(id: string) {
   const user = await requireUser();

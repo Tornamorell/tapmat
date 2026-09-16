@@ -32,7 +32,7 @@ El esquema está en `src/db/schema.ts` (Drizzle), y las migraciones en `drizzle/
 | Tabla | Una fila por |
 | --- | --- |
 | `items` | **montón** de tus cartas: copias idénticas de una edición, con `owner_id`, `quantity` y, opcionalmente, `location_id` |
-| `locations` | ubicación física del usuario ("Caja 1", "Carpeta roja"). El nombre es único por usuario, sin distinguir mayúsculas. `section_capacity` y `auto_advance` configuran sus separadores (D28). |
+| `locations` | ubicación física del usuario ("Caja 1", "Carpeta roja"). El nombre es único por usuario, sin distinguir mayúsculas. `section_capacity` y `auto_advance` configuran sus separadores (D28). Tiene una descripción corta bajo el título y notas libres (`notes`, hasta 5.000 caracteres, editables en su página, 2026-09-16), igual que una colección. |
 | `location_sections` | separador dentro de una ubicación ("Caja 1 › 3"): `position` (orden), `name` y `capacity` (vacía = sin límite). Un montón puede estar en uno con `items.section_id`. |
 | `collections` | colección del usuario (`owner_id`): una lista con nombre, como «Pokédex de Hoenn», una descripción corta bajo el título y notas libres (`notes`, hasta 5.000 caracteres, editables en su página, 2026-09-15) |
 | `collection_cards` | (colección, edición): una entrada de la lista, con la `quantity` que quieres (1 por defecto) |

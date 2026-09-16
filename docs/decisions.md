@@ -274,6 +274,11 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
   igual: es un dato opcional de cada montón de tus cartas.
 - **Actualización (D28):** una ubicación puede tener separadores, con capacidad y modo
   automático, y las cartas se mueven entre ubicaciones y separadores.
+- **Actualización (2026-09-16):** una ubicación tiene también **notas libres** (`locations.notes`,
+  hasta 5.000 caracteres), como las colecciones: para apuntar dónde está la caja, cómo la tienes
+  ordenada o qué guardas en ella. Se editan en su página, debajo del título, y se ven tal como se
+  escriben, con sus saltos de línea. La descripción corta sigue siendo el subtítulo de una línea.
+  `/locations/none` no las tiene, porque no es una ubicación de verdad.
 
 ## D21 · Las rarezas se muestran en inglés — 2026-09-11 · provisional
 

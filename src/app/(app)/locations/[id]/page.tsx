@@ -21,6 +21,7 @@ import {
   unsectionedCount,
 } from "@/lib/queries/locations";
 import { requireUser } from "@/lib/session";
+import { LocationNotes } from "./location-notes";
 import { LocationSettings } from "./location-settings";
 import { SectionsPanel } from "./sections-panel";
 
@@ -33,6 +34,8 @@ async function load(ownerId: string, id: string) {
       id: null,
       name: "Sin ubicación",
       description: "Copias que aún no tienen un sitio asignado.",
+      // Not a real location, so there's nothing to write notes on.
+      notes: null,
       sectionCapacity: null,
       autoAdvance: false,
       ...(await unlocatedSummary(ownerId)),
@@ -100,6 +103,8 @@ export default async function LocationPage({ params, searchParams }: PageProps<"
           />
         )}
       </div>
+
+      {location.id && <LocationNotes id={location.id} notes={location.notes} />}
 
       <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
         <p className="display text-primary text-3xl font-bold">{formatEur(location.valueEur)}</p>

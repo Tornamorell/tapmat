@@ -169,6 +169,13 @@
       "when": 1789505860307,
       "tag": "0023_photo_review",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1789564087696,
+      "tag": "0024_location_notes",
+      "breakpoints": true
     }
   ]
 }

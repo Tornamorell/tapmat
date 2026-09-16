@@ -180,6 +180,8 @@ export const locations = pgTable(
       .references(() => user.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     description: text("description"),
+    /** Free notes on the location, longer than the description, edited on its page. */
+    notes: text("notes"),
     // Dividers inside the box (D28): the capacity new ones get (null = no limit), and whether
     // entering a copy into a full divider moves on to the next one by itself.
     sectionCapacity: integer("section_capacity"),

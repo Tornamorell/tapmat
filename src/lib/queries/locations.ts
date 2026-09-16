@@ -85,6 +85,7 @@ export async function getLocation(ownerId: string, id: string) {
       id: locations.id,
       name: locations.name,
       description: locations.description,
+      notes: locations.notes,
       sectionCapacity: locations.sectionCapacity,
       autoAdvance: locations.autoAdvance,
       ...stackAggregates,
