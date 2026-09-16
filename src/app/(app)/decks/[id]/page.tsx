@@ -64,6 +64,10 @@ export default async function DeckPage({ params }: PageProps<"/decks/[id]">) {
   const extras = box.filter((b) => b.copies > (listed.get(b.oracleId) ?? 0));
   // Copies in the box beyond what the list asks for: a double scan, or a card of another deck.
   const extraCopies = extras.reduce((n, e) => n + e.copies - (listed.get(e.oracleId) ?? 0), 0);
+  // Of those, the ones the list can hold (Magic, with its rules data): what the button adds.
+  const listableCopies = extras
+    .filter((e) => e.listable)
+    .reduce((n, e) => n + e.copies - (listed.get(e.oracleId) ?? 0), 0);
 
   // What each card does: the owner's choice, or the guess from its text.
   const rolesOf = (r: DeckCardRow) => (r.manualRoles as Role[] | null) ?? cardRoles(r);
@@ -168,7 +172,7 @@ export default async function DeckPage({ params }: PageProps<"/decks/[id]">) {
             </p>
             <ProgressMeter value={covered} max={Math.max(a.size, 1)} showLabel={false} className="w-full" />
           </div>
-          <DeckTools deckId={deck.id} name={deck.name} pullable={pullable} exportText={exportText}>
+          <DeckTools deckId={deck.id} name={deck.name} pullable={pullable} listable={listableCopies} exportText={exportText}>
             <OpeningHand cards={library} />
           </DeckTools>
         </div>
@@ -192,7 +196,8 @@ export default async function DeckPage({ params }: PageProps<"/decks/[id]">) {
                 En la caja, de más <span className="font-normal tabular-nums">({extraCopies})</span>
               </h3>
               <p className="text-muted-foreground text-xs">
-                Copias que la lista no pide: un escaneo repetido o una carta de otro mazo. Quítalas o muévelas{" "}
+                Copias que la lista no pide: un escaneo repetido o una carta de otro mazo. Añádelas a la lista
+                con «Añadir a la lista lo de la caja», o quítalas y muévelas{" "}
                 {deck.locationId ? (
                   <Link href={`/locations/${deck.locationId}`} className="hover:text-foreground underline">
                     desde la caja

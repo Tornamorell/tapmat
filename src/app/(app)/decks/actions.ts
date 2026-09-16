@@ -8,7 +8,7 @@ import { catalogCards, deckCards, decks, locations, oracleCards } from "@/db/sch
 import { BOARDS, parseDecklist, type Board } from "@/lib/decks/decklist";
 import { resolveDecklist, type ResolvedLine } from "@/lib/decks/resolve";
 import { ROLES, type Role } from "@/lib/decks/roles";
-import { deckCardRows } from "@/lib/queries/decks";
+import { boxContents, deckCardRows } from "@/lib/queries/decks";
 import { requireUser } from "@/lib/session";
 import { moveItems } from "../inventory/actions";
 
@@ -252,4 +252,34 @@ export async function pullIntoDeck(deckId: string, oracleId?: string) {
   if (stacks.length) await moveItems({ stacks, locationId, sectionId: null });
   refresh();
   return { moved: stacks.reduce((n, s) => n + s.count, 0) };
+}
+
+/**
+ * «Añadir a la lista lo de la caja»: the other way round from pullIntoDeck. What's in the deck's
+ * box beyond what its list asks for — the page's «de más» — goes onto the main board, with the
+ * printing of the copy that's in the box. Cards the list can't hold (another game, or rules data
+ * the Scryfall sync hasn't brought yet) are counted apart and left alone; nothing is moved or
+ * removed from the box.
+ */
+export async function addBoxToDeck(deckId: string) {
+  const user = await requireUser();
+  const deck = await ownedDeck(user.id, deckId);
+  if (!deck.locationId) return { added: 0, skipped: 0 };
+  const [box, rows] = await Promise.all([boxContents(user.id, deck.locationId), deckCardRows(user.id, deck.id)]);
+
+  // What the list already asks for, on every board: the same count the deck's page calls «de más».
+  const listed = new Map<string, number>();
+  for (const r of rows) listed.set(r.oracleId, (listed.get(r.oracleId) ?? 0) + r.quantity);
+
+  const lines: ResolvedLine[] = [];
+  let skipped = 0;
+  for (const b of box) {
+    const missing = b.copies - (listed.get(b.oracleId) ?? 0);
+    if (missing <= 0) continue;
+    if (!b.listable) skipped += missing;
+    else lines.push({ board: "main", quantity: missing, oracleId: b.oracleId, printingId: b.printingId });
+  }
+  await addLines(deck.id, lines);
+  refresh();
+  return { added: lines.reduce((n, l) => n + l.quantity, 0), skipped };
 }

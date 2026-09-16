@@ -131,10 +131,28 @@ export async function deckCardRows(ownerId: string, deckId?: string): Promise<De
   return rows;
 }
 
-/** What's in a deck's box, by card: to spot copies there that the list doesn't have. */
+/**
+ * What's in a deck's box, by card: to spot copies there that the list doesn't have, and to put
+ * them in it («Añadir a la lista lo de la caja»). `listable` says whether that last part is
+ * possible: a deck's list holds Magic cards by `oracle_id`, so anything from another game, or a
+ * card whose rules data the Scryfall sync hasn't brought yet, can't go into it.
+ */
 export async function boxContents(ownerId: string, locationId: string) {
-  const { rows } = await pool.query<{ oracleId: string; name: string; copies: number }>(
-    `select c.oracle_id as "oracleId", min(c.name) as name, sum(i.quantity)::int as copies
+  const { rows } = await pool.query<{
+    oracleId: string;
+    name: string;
+    copies: number;
+    /** The printing of the copy in the box worth the most: the one the list will point at. */
+    printingId: string | null;
+    listable: boolean;
+  }>(
+    `select c.oracle_id as "oracleId", min(c.name) as name, sum(i.quantity)::int as copies,
+            (array_agg(c.id order by coalesce(i.estimated_value_eur,
+                                              case i.finish when 'nonfoil' then c.price_eur
+                                                            when 'foil' then c.price_eur_foil end)
+                       desc nulls last))[1] as "printingId",
+            (bool_and(c.game = 'mtg')
+             and exists (select 1 from oracle_cards o where o.oracle_id = c.oracle_id)) as listable
      from items i join catalog_cards c on c.id = i.catalog_card_id
      where i.owner_id = $1 and i.location_id = $2 and c.oracle_id is not null
      group by c.oracle_id

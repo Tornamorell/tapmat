@@ -765,6 +765,18 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
   - «Traer» elige primero las copias de la edición preferida.
   - **Descartado:** cambiar la edición preferida al traer una copia: la lista es lo que el
     usuario eligió, y la caja ya dice lo que tiene.
+- **Actualización (2026-09-16, «Añadir a la lista lo de la caja»):** al revés que «Traer a la
+  caja». El usuario escanea el mazo entero a su caja, así que la caja ya es la lista: el botón
+  mete en el tablero principal lo que hay en la caja y la lista no pide —lo que la página ya
+  enseñaba como «de más»—, con la edición de la copia que está en la caja.
+  - Solo aparece si hay algo que añadir, junto a «Traer a la caja», y no toca la caja: no mueve
+    ni quita copias.
+  - `boxContents` dice ahora si cada carta se puede listar (`listable`): la lista de un mazo
+    guarda cartas de Magic por `oracle_id` (`deck_cards.oracle_id` apunta a `oracle_cards`), así
+    que lo de otros juegos, o una carta cuyos datos de reglas aún no ha traído la
+    sincronización, se cuenta aparte y se queda fuera, avisando de cuántas.
+  - Las copias gradeadas cuentan como cualquier otra aquí, porque están físicamente en la caja;
+    el análisis del mazo sigue sin contarlas (D27).
 
 ## D36 · Buscar la carta en toda la imagen del escáner — 2026-09-14 · provisional
 

@@ -1,13 +1,13 @@
 "use client";
 
-import { ArrowDownToLineIcon, ClipboardCopyIcon, ClipboardPasteIcon, PencilIcon, Trash2Icon } from "lucide-react";
+import { ArrowDownToLineIcon, ClipboardCopyIcon, ClipboardPasteIcon, ListPlusIcon, PencilIcon, Trash2Icon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { deleteDeck, importIntoDeck, pullIntoDeck, renameDeck } from "../actions";
+import { addBoxToDeck, deleteDeck, importIntoDeck, pullIntoDeck, renameDeck } from "../actions";
 import { reportImport } from "../import-report";
 
 type Mode = null | "import" | "rename" | "delete";
@@ -17,6 +17,7 @@ export function DeckTools({
   deckId,
   name,
   pullable,
+  listable,
   exportText,
   children,
 }: {
@@ -24,6 +25,8 @@ export function DeckTools({
   name: string;
   /** Copies the box lacks that are free elsewhere. */
   pullable: number;
+  /** Copies in the box that the list doesn't ask for and that can go into it. */
+  listable: number;
   exportText: string;
   /** More tools in the same row, after copying the list (the test hand). */
   children?: React.ReactNode;
@@ -55,6 +58,25 @@ export function DeckTools({
         setPulling(false);
       }
     }, "No se han podido mover las copias.");
+  };
+
+  // Its own flag too, for the same reason as `pulling`.
+  const [adding, setAdding] = useState(false);
+  const addBox = () => {
+    setAdding(true);
+    run(async () => {
+      try {
+        const r = await addBoxToDeck(deckId);
+        const left = r.skipped ? ` Quedan ${r.skipped} sin datos de reglas.` : "";
+        toast.success(
+          r.added
+            ? `${r.added} ${r.added === 1 ? "copia añadida" : "copias añadidas"} a la lista.${left}`
+            : `No había nada que añadir.${left}`,
+        );
+      } finally {
+        setAdding(false);
+      }
+    }, "No se han podido añadir las cartas a la lista.");
   };
 
   const paste = () =>
@@ -93,6 +115,12 @@ export function DeckTools({
           <Button size="sm" onClick={pull} disabled={pending} aria-busy={pending}>
             <ArrowDownToLineIcon />
             {pulling ? "Trayendo a la caja…" : `Traer a la caja lo que tienes (${pullable})`}
+          </Button>
+        )}
+        {listable > 0 && (
+          <Button size="sm" variant="outline" onClick={addBox} disabled={pending} aria-busy={pending}>
+            <ListPlusIcon />
+            {adding ? "Añadiendo a la lista…" : `Añadir a la lista lo de la caja (${listable})`}
           </Button>
         )}
         <Button size="sm" variant="outline" onClick={() => setMode(mode === "import" ? null : "import")} disabled={pending}>
