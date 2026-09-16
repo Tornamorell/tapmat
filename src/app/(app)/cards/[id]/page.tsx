@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { ConditionBadge, LanguageFlag } from "@/components/card-attributes";
+import { CardPhotoButton } from "@/components/card-photo-button";
 import { SetIcon } from "@/components/card-thumb";
 import { HoloCard } from "@/components/holo-card";
 import { ItemActions, QuantityControl, type ActionItem } from "@/components/item-actions";
@@ -29,7 +30,6 @@ import { cn } from "@/lib/utils";
 import { isCardPhoto } from "@/lib/card-photo";
 import { EntryControls } from "../../collections/[id]/entry-controls";
 import { AddCopy } from "./add-copy";
-import { CardPhotoButton } from "./card-photo-button";
 import { WantInCollection } from "./want-in-collection";
 
 async function load(id: string) {

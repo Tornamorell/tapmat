@@ -573,9 +573,12 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
     a un almacenamiento de ficheros como Cloudflare R2.
   - **Actualización (2026-09-16):** en `/admin`, debajo de las fotos compartidas, salen también
     las **cartas sin imagen que alguien guarda en una ubicación o ha puesto en una colección**
-    (`listCardsWithoutPhoto`), con cuántas copias y en cuántas colecciones están, enlazando a la
-    carta para hacerle la foto. Son las que se ven con el hueco gris al usar la app, así que son
-    las que compensa fotografiar: el resto del catálogo sin imagen (miles) no se lista.
+    (`listCardsWithoutPhoto`), con cuántas copias y en cuántas colecciones están. Son las que se
+    ven con el hueco gris al usar la app, así que son las que compensa fotografiar: el resto del
+    catálogo sin imagen (miles) no se lista.
+    - Cada una lleva su **«Añadir foto»** (2026-09-16): la foto se hace desde ahí, sin entrar en
+      la ficha de cada carta, y al guardarla la carta desaparece de la lista. Es el mismo
+      `CardPhotoButton` de la ficha, que pasa a `src/components/` al usarse en dos sitios.
     - «Sin imagen» es `catalog_cards.image_small is null`, que cubre los dos casos a la vez —ni
       su fuente traía imagen ni nadie ha compartido una—, porque compartir una escribe ahí su
       URL y borrarla la vuelve a dejar en null (`saveCardPhoto` / `deleteCardPhoto`).

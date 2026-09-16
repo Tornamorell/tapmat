@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { CardPhotoButton } from "@/components/card-photo-button";
 import { CardThumb } from "@/components/card-thumb";
 import { cardPhotoUrl } from "@/lib/card-photo";
 import { listCardsWithoutPhoto, listPhotosForReview, listUsersForAdmin } from "@/lib/queries/admin";
@@ -70,7 +71,9 @@ export default async function AdminPage() {
           </h3>
           <p className="text-muted-foreground max-w-prose text-sm">
             Cartas que alguien guarda en una ubicación o ha puesto en una colección y no tienen
-            imagen, ni la de su fuente ni una compartida. Entra en la carta para hacerle una foto.
+            imagen, ni la de su fuente ni una compartida. Hazles la foto aquí mismo, sin entrar en
+            cada una: se recorta con la forma de la carta y la ven todos. En el móvil, «Añadir
+            foto» abre la cámara.
           </p>
           {missing.length ? (
             <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
@@ -96,6 +99,8 @@ export default async function AdminPage() {
                         .join(" · ")}
                     </p>
                   </div>
+                  {/* The same button as the card's page: the photo goes in without leaving here. */}
+                  <CardPhotoButton catalogCardId={m.catalogCardId} hasPhoto={false} />
                 </li>
               ))}
             </ul>
