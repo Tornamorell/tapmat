@@ -120,16 +120,26 @@ paralelo sirvió 80 cartas en 4 s sin errores.
 - Imagen de carta: `{image}/low.webp` (~245 px) y `{image}/high.webp` (~600 px); también hay
   `.png` y `.jpg`.
 - Logo de expansión: `{logo}.webp` y `{logo}.png`. Lo anuncian **todas** las expansiones.
-- **Símbolo: la URL tal cual, sin extensión** — `{symbol}`, no `{symbol}.png` (corregido el
-  2026-09-16). Con extensión da 404 casi siempre: pedir `.png` acertaba en 1 de las 203
-  expansiones guardadas, y por eso solo esa tenía icono. Comprobado en me01, me04, me05, sv09,
-  swsh1, sm1 y xy1: sin extensión devuelve 200, y `.png`, `.webp` y `.jpg` devuelven 404.
-  - 169 de las 218 expansiones anuncian símbolo. Las 49 que no son promos y rarezas (`base1`,
-    `jumbo`, `wp`, los trainer kits, `sve`…).
-  - De las que sí lo anuncian, alguna no existe igualmente (`sv03.5` da 404), así que la
-    sincronización sigue haciendo un HEAD y guardando null si no está.
-  - El símbolo es cuadrado y se pinta a 16 px (`SetIcon`); el logo es apaisado y no cabe en ese
-    hueco, así que no se usa como respaldo.
+- **Símbolo: `{symbol}.png`**, y casi ninguna expansión lo tiene de verdad. 169 de las 218
+  anuncian `symbol`, pero al pedir la imagen solo responde **una** de las 203 que guardamos
+  (me05: `image/png`, 2,4 KB); me01, sv09 y el resto de las probadas dan 404. El símbolo es
+  cuadrado y se pinta a 16 px (`SetIcon`); el logo es apaisado y no cabe ahí, así que no se usa
+  como respaldo.
+- **Trampa del servidor de recursos** (comprobada el 2026-09-16, y conviene no olvidarla):
+  `assets.tcgdex.net` responde **200 con una página HTML de 295 bytes** a cualquier ruta que no
+  tenga, incluidas las inventadas (`/univ/me/noexiste/symbol`). De ahí que:
+  - la URL «sin extensión» **parezca** funcionar y no funcione: devuelve esa página, no una
+    imagen. Se probó cambiar a `{symbol}` por eso y se revirtió el mismo día;
+  - un `HEAD` con `res.ok` no valga como prueba de existencia: `assetExists` comprueba además que
+    el `content-type` empiece por `image/`;
+  - lo mismo pase con las cartas: `{image}` a secas da la página y la imagen está en
+    `{image}/high.webp`.
+- **Cartas sin imagen:** 1 560 de 21 068 (7,4 %), y van por subconjuntos enteros: Celebrations
+  Classic Collection (25), Shining Fates Shiny Vault (122), MEP Black Star Promos (89), Shining
+  Legends (78), Dragon Majesty (78), Crown Zenith Galarian Gallery (70), las trainer galleries y
+  los trainer kits. No es cosa de la sincronización: `/cards/{id}`, que es de donde saca los
+  datos, devuelve `image: null` en todas ellas (comprobado el 2026-09-16 con `cel25cc-CC001`,
+  `swsh4.5sv-SV001` y `swsh12tg-TG01`). Las cubren las fotos compartidas (D30).
 
 **Primera sincronización completa** (2026-09-11, 6 peticiones en paralelo):
 - 7,5 minutos para 203 expansiones y 21 068 cartas, sin ningún 404.

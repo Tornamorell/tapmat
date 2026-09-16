@@ -51,11 +51,12 @@ if (ownedOnly) {
   const sets = details.filter((s) => !EXCLUDED_SERIES.includes(s.serie.id));
 
   const setRows = await mapLimit(sets, CONCURRENCY, async (s) => {
-    // The symbol is served from the bare URL the API gives: adding an extension 404s. Asking for
-    // "<symbol>.png" happened to work for exactly one set out of 203, which is why only that one
-    // ever got an icon. 169 of 218 sets advertise a symbol, and a few of those still don't exist
-    // (sv03.5), so assetExists stays. Checked 2026-09-16, see docs/data-sources.md.
-    const icon = s.symbol ?? null;
+    // "<symbol>.png" is where the image really is: me05 serves image/png there. The bare URL the
+    // API gives looks like it works — it answers 200 — but the asset host answers 200 with a
+    // 295-byte HTML page for anything it hasn't got, made-up paths included, so it is not an
+    // image. Most sets simply have no symbol; assetExists checks the content type, not the
+    // status, so a page can't be stored as an icon. Checked 2026-09-16, docs/data-sources.md.
+    const icon = s.symbol ? `${s.symbol}.png` : null;
     return mapTcgdexSet(s, icon && (await assetExists(icon)) ? icon : null);
   });
   await upsertSets(setRows);

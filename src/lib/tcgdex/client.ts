@@ -42,11 +42,16 @@ export const getCard = (id: string) => getJson<TcgdexCard>(`/en/cards/${encodeUR
 /** Brief list (id + name) of every card in a language — one request. */
 export const listCards = (lang: string) => getRequired<TcgdexCardBrief[]>(`/${lang}/cards`);
 
-/** Some assets advertised by the API (set symbols) don't exist; check before storing. */
+/**
+ * Whether an asset really is there. `res.ok` is not enough: the asset host answers **200 with a
+ * 295-byte HTML page** for anything it hasn't got — checked on 2026-09-16 with made-up paths like
+ * `/univ/me/noexiste/symbol` — so trusting the status alone stores a link to that page instead of
+ * an image. The content type has to be an image.
+ */
 export async function assetExists(url: string): Promise<boolean> {
   try {
     const res = await fetch(url, { method: "HEAD", headers: { "User-Agent": HEADERS["User-Agent"] } });
-    return res.ok;
+    return res.ok && (res.headers.get("content-type") ?? "").toLowerCase().startsWith("image/");
   } catch {
     return false;
   }
