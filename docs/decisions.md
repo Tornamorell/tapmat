@@ -806,6 +806,14 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
         se mira una vez la otra, por si se cambia de la mesa al slinger.
       - Una carta encontrada no se suelta, y por tanto no se vuelve a añadir, mientras siga a la
         vista, aunque no se lea nada en varias lecturas seguidas: así se duplicaban.
+    - **Actualización (2026-09-16, cartas normales que no se leían):** el problema no era el ritmo
+      ni dónde cae la franja, sino cómo se segmenta. La franja se lee ahora como texto disperso
+      (PSM 11) y no como un bloque: el nombre del artista va en una columna al lado del número y,
+      como bloque, Tesseract los juntaba. Medido con 15 cartas: 9 de 15 con número y código,
+      frente a 8, sin perder ninguna, corrigiendo dos lecturas equivocadas y 20 ms más rápido.
+      **Descartada** una franja más estrecha y ajustada a la línea: leía la foto con la que se
+      diseñó, pero baja a 6 de 15 porque en muchos marcos se come la fila del número. Ver
+      `docs/scanner.md`.
   - Se puede apagar en los ajustes del escáner («Buscar la carta», `findCard` en el dispositivo).
   - `detectCardQuad` sigue enderezando la carta dentro de esa caja (D32), donde sí la llena.
   - Medido el 2026-09-14 con 5 fotos del slinger del usuario, recortadas a 16:9 como las ve el

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { numberVariants, parseCollectorLine, parseTitle, sameLine } from "./parse";
+import { canonicalNumber, numberVariants, parseCollectorLine, parseTitle, sameLine } from "./parse";
 
 // Inputs are real Tesseract outputs on card scans (2026-09-11, see docs/scanner.md),
 // with "⏎" where Tesseract returned a line break.
@@ -73,6 +73,19 @@ describe("numberVariants", () => {
   });
 });
 
+describe("canonicalNumber", () => {
+  it("is the same for every spelling of a number", () => {
+    expect(canonicalNumber("0001")).toBe("1");
+    expect(canonicalNumber("001")).toBe("1");
+    expect(canonicalNumber("1")).toBe("1");
+  });
+
+  it("keeps a number that has no leading zeros", () => {
+    expect(canonicalNumber("107")).toBe("107");
+    expect(canonicalNumber("285")).toBe("285");
+  });
+});
+
 describe("sameLine", () => {
   it("treats 0001 and 001 of the same set as the same read", () => {
     const a = parseCollectorLine("U 0001 MKM EN");
@@ -80,6 +93,12 @@ describe("sameLine", () => {
     expect(sameLine(a, b)).toBe(true);
     expect(sameLine(a, parseCollectorLine("U 0002 MKM EN"))).toBe(false);
     expect(sameLine(a, null)).toBe(false);
+  });
+
+  it("tells apart two unpadded numbers of the same set", () => {
+    // numberVariants("107")[1] and numberVariants("285")[1] are both undefined, so comparing
+    // those made every read without leading zeros equal to every other one.
+    expect(sameLine(parseCollectorLine("107 NCC EN"), parseCollectorLine("285 NCC EN"))).toBe(false);
   });
 });
 

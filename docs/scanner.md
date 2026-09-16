@@ -17,7 +17,7 @@ cámara trasera (getUserMedia, se piden 3840×2160; el móvil da lo que puede)
       La franja de datos va sobre la carta, como en el recuadro, o por debajo de ella (x 0–55 %,
       y 93–108 %) si lo encontrado es el marco de dentro: se prueban por turnos y se queda la que lee
   → 1. franja de datos (abajo a la izquierda: x 2–50 %, y 89,5–99 %), escalada a 140 px de alto,
-       en gris con el contraste estirado → Tesseract (A–Z 0–9 / • ., PSM 6)
+       en gris con el contraste estirado → Tesseract (A–Z 0–9 / • ., PSM 11, texto disperso)
        → parseCollectorLine(): número, total, códigos, idioma           src/lib/scan/parse.ts
        → POST /api/scan/lookup → lookupScan()                           src/lib/queries/scan.ts
   → 2. si no hay línea de datos (una de cada dos lecturas): franja del título (x 4–76 %,
@@ -339,6 +339,52 @@ El usuario escaneó un mazo entero a su caja, con cartas reales y «Buscar la ca
   Arreglado el mismo día (franja para toda la sesión, no soltar la carta mientras se vea, la IA
   no repite), y el tiempo de cada paso en «Ver lo que lee». **Falta volver a medir.**
 
+## Mediciones (2026-09-16, por qué no leía cartas normales)
+
+El usuario no conseguía escanear cartas corrientes: «me da la sensación que quiere leer
+demasiado rápido». **No era el ritmo.** Con su foto de una Cultivate (NCC 285) se pasó la lectura
+real paso a paso (`findCard` → franjas → OCR → `parseCollectorLine`):
+
+- `findCard` la encuentra bien, en 45 ms, y lo que encuentra es el marco de dentro (76 % del
+  ancho de la foto), así que la franja que toca es la de debajo.
+- La franja cae en su sitio: en el recorte se lee `285 C` / `NCC • EN ✎ ANTHONY PALUMBO`. Lo que
+  fallaba era el OCR: con PSM 6 salía `10 S ⏎ 2 C ⏎ RE EN ANTHONY PALUMBO`.
+- **La causa es la segmentación.** El nombre del artista va en su propia columna, al lado del
+  número, y PSM 6 (un bloque uniforme) junta las dos columnas en la misma línea. Con **PSM 11**
+  (texto disperso) las separa: `285` y `NCC EN …`.
+
+**Regresión con 15 cartas** (imágenes de catálogo con la caja metida un 4 % hacia dentro, para
+simular el marco que se encuentra en un slinger), puntuando contra el propio catálogo:
+
+| Franja | Número | Código | Las dos |
+| --- | --- | --- | --- |
+| La de hoy, PSM 6 | 12 | 8 | 8 |
+| **La de hoy, PSM 11** | **14** | **9** | **9** |
+| Más estrecha (x 0–40 %, y 97,5–107,5 %), PSM 6 | 11 | 7 | 6 |
+| Más estrecha, PSM 11 | 7 | 2 | 2 |
+
+- PSM 11 no pierde ninguna carta y gana MOM 298 (`null` → `0298 MOM`). Además corrige dos
+  lecturas *equivocadas* de PSM 6: SV09 001, que leía `901`, y ME01 001, donde leía el código
+  `ELD` —una expansión que existe— en una carta MEG.
+- Y es **más rápido**: 34 ms frente a 56 ms en la misma franja de 140 px.
+- **Descartada la franja más estrecha.** Leía la foto de la Cultivate, pero estaba ajustada a esa
+  foto: en el conjunto se queda en 6 de 15, porque en muchos marcos se come la fila del número y
+  solo deja `FDN EN ARTISTA`. En M20 1 llegaba a leer el número mal (`200` por `001`).
+- Lo de siempre: M10 146 (marco antiguo) sigue sin leerse por la franja; se resuelve por título.
+
+**Dos errores del código, encontrados por el camino:**
+
+- `numberVariants(n)[1]` se usaba como «el número normalizado», pero es `undefined` cuando el
+  número no lleva ceros delante (`"107"` → `["107"]`). La clave de la votación
+  (`c:<número>/<total>/<código>`) quedaba en `c:undefined//NCC`, **igual para dos cartas
+  distintas de la misma expansión**: dos lecturas de cartas diferentes se votaban entre sí. Ahora
+  hay `canonicalNumber()` en `parse.ts`, con tests. Era una causa de las lecturas duplicadas y
+  equivocadas al escanear un mazo entero.
+- `captureRegion` no recortaba la franja al borde del fotograma. La de debajo se sale por abajo
+  cuando la carta queda baja en la pantalla, y lo que cae fuera el canvas lo pinta de negro
+  transparente: ese negro falso hundía el mínimo del estirado de contraste y deslavaba el texto.
+  Ahora se recorta a lo que existe.
+
 ## Parámetros de ajuste
 
 En `scanner.tsx`:
@@ -369,7 +415,9 @@ En `queries/scan.ts`:
 
 ## Pendiente
 
-- **Volver a medir con el móvil y cartas reales.** «Ver lo que lee» enseña lo que falla.
+- **Volver a medir con el móvil y cartas reales.** «Ver lo que lee» enseña lo que falla. En
+  particular, la mejora de PSM 11 está medida sobre imágenes de catálogo simuladas y sobre una
+  sola foto real: falta confirmarla con el slinger y con cartas en la mano.
 - Recordar el acabado elegido en el panel para las siguientes cartas, si el uso lo pide. Hoy
   cambia solo la carta actual; el valor por defecto se fija antes de empezar.
 - **Cola de revisión** con miniatura (`pending_scans`), si la búsqueda manual se queda corta.

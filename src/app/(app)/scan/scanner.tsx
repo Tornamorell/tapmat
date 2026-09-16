@@ -57,7 +57,7 @@ import {
   type NameLayout,
   type Rect,
 } from "@/lib/scan/geometry";
-import { numberVariants, parseCollectorLine, parseTitle, type CollectorLine } from "@/lib/scan/parse";
+import { canonicalNumber, parseCollectorLine, parseTitle, type CollectorLine } from "@/lib/scan/parse";
 import {
   entryUnitPrice,
   sessionTotals,
@@ -120,11 +120,20 @@ function stopwatch() {
 
 /** Crops `rect` of `source` into `canvas` at `height` px, as contrast-stretched grayscale. */
 function captureRegion(source: CanvasImageSource, r: Rect, canvas: HTMLCanvasElement, height: number) {
-  canvas.width = Math.max(1, Math.round((r.w * height) / r.h));
+  // A strip can reach past the edge of the frame: the one below a found card, when the card sits
+  // low in the view. Outside the source, drawImage paints transparent black, and that false
+  // minimum flattens the contrast stretch below and washes the text out. Read only what's there.
+  const sw = source instanceof HTMLVideoElement ? source.videoWidth : (source as ImageBitmap).width;
+  const sh = source instanceof HTMLVideoElement ? source.videoHeight : (source as ImageBitmap).height;
+  const x = Math.min(Math.max(0, r.x), Math.max(0, sw - 1));
+  const y = Math.min(Math.max(0, r.y), Math.max(0, sh - 1));
+  const w = Math.max(1, Math.min(r.w, sw - x));
+  const h = Math.max(1, Math.min(r.h, sh - y));
+  canvas.width = Math.max(1, Math.round((w * height) / h));
   canvas.height = height;
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   if (!ctx) return;
-  ctx.drawImage(source, r.x, r.y, r.w, r.h, 0, 0, canvas.width, canvas.height);
+  ctx.drawImage(source, x, y, w, h, 0, 0, canvas.width, canvas.height);
   const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const d = img.data;
   let min = 255;
@@ -283,7 +292,7 @@ export function Scanner({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const photoCanvasRef = useRef<HTMLCanvasElement>(null);
   const workerRef = useRef<OcrWorker | null>(null);
-  const psmRef = useRef<{ block: Psm; line: Psm } | null>(null);
+  const psmRef = useRef<{ info: Psm; title: Psm } | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const runningRef = useRef(false);
   /** Catalog card id → hash of its shared photo (D33), of the fixed set or of all. */
@@ -366,7 +375,10 @@ export function Scanner({
   async function getWorker() {
     if (workerRef.current) return workerRef.current;
     const { createWorker, PSM } = await import("tesseract.js");
-    psmRef.current = { block: PSM.SINGLE_BLOCK, line: PSM.SINGLE_LINE };
+    // The info strip is read as sparse text, not as one block: the artist's name sits in its own
+    // column beside the number, and as a block Tesseract runs the two together ("285 C" + the
+    // artist came out "RE EN ANTHONY PALUMBO"). Measured 2026-09-16, docs/scanner.md.
+    psmRef.current = { info: PSM.SPARSE_TEXT, title: PSM.SINGLE_LINE };
     workerRef.current = await createWorker("eng");
     return workerRef.current;
   }
@@ -377,8 +389,8 @@ export function Scanner({
     if (readState.current.mode !== mode) {
       await worker.setParameters(
         mode === "info"
-          ? { tessedit_char_whitelist: INFO_CHARS, tessedit_pageseg_mode: psm.block }
-          : { tessedit_char_whitelist: TITLE_CHARS, tessedit_pageseg_mode: psm.line },
+          ? { tessedit_char_whitelist: INFO_CHARS, tessedit_pageseg_mode: psm.info }
+          : { tessedit_char_whitelist: TITLE_CHARS, tessedit_pageseg_mode: psm.title },
       );
       readState.current.mode = mode;
     }
@@ -672,7 +684,7 @@ export function Scanner({
           setLastText(text.trim());
           s.empty = 0;
           setStatus(`Leyendo ${describe(line)}…`);
-          const key = `c:${numberVariants(line.number)[1]}/${line.total ?? ""}/${line.setCodes[0] ?? ""}`;
+          const key = `c:${canonicalNumber(line.number)}/${line.total ?? ""}/${line.setCodes[0] ?? ""}`;
           if (vote(key) >= VOTES_NEEDED) {
             const matches = await lookupLine(line);
             watch.lap("catálogo");

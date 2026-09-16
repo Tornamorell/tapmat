@@ -108,12 +108,21 @@ export function numberVariants(number: string): string[] {
   return [...new Set([number, stripped, stripped.padStart(3, "0")])];
 }
 
+/**
+ * The one spelling that identifies a number, for comparing two reads: "0001", "001" and "1" are
+ * the same card. Not `numberVariants()[1]`, which is undefined for a number without leading
+ * zeros ("107", "285"), so every such read compared equal to every other one.
+ */
+export function canonicalNumber(number: string): string {
+  return number.replace(/^0+(?=\d)/, "");
+}
+
 /** Two reads describe the same card. */
 export function sameLine(a: CollectorLine | null, b: CollectorLine | null): boolean {
   return (
     !!a &&
     !!b &&
-    numberVariants(a.number)[1] === numberVariants(b.number)[1] &&
+    canonicalNumber(a.number) === canonicalNumber(b.number) &&
     a.total === b.total &&
     a.setCodes[0] === b.setCodes[0]
   );
