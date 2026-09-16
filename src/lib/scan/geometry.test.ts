@@ -83,9 +83,9 @@ describe("stripUnion", () => {
   it("covers both strips of a found card: on the card and below its inner frame", () => {
     expect(stripUnion(FOUND_INFO_STRIPS.card, FOUND_INFO_STRIPS.frame)).toEqual({
       x0: 0,
-      x1: 0.55,
+      x1: 0.5,
       y0: 0.895,
-      y1: 1.08,
+      y1: 1.09,
     });
   });
 });

@@ -14,8 +14,8 @@ cámara trasera (getUserMedia, se piden 3840×2160; el móvil da lo que puede)
     (object-fit: cover recorta el vídeo: coverTransform + toVideo)
   → «Buscar la carta» (D36): findCard() en todo lo que se ve, a 360 px    src/lib/scan/find-card.ts
     → si sale dos lecturas seguidas en el mismo sitio, se lee su caja en lugar del recuadro.
-      La franja de datos va sobre la carta, como en el recuadro, o por debajo de ella (x 0–55 %,
-      y 93–108 %) si lo encontrado es el marco de dentro: se prueban por turnos y se queda la que lee
+      La franja de datos va sobre la carta, como en el recuadro, o por debajo de ella (x 0–45 %,
+      y 98–109 %) si lo encontrado es el marco de dentro: se prueban por turnos y se queda la que lee
   → 1. franja de datos (abajo a la izquierda: x 2–50 %, y 89,5–99 %), escalada a 140 px de alto,
        en gris con el contraste estirado → Tesseract (A–Z 0–9 / • ., PSM 11, texto disperso)
        → parseCollectorLine(): número, total, códigos, idioma           src/lib/scan/parse.ts
@@ -126,9 +126,10 @@ cámara trasera (getUserMedia, se piden 3840×2160; el móvil da lo que puede)
       - La franja de datos puede estar en dos sitios (`FOUND_INFO_STRIPS`):
         - **sobre la carta**, donde la pone el recuadro, si se ha encontrado la carta entera (una
           mesa, un tapete, una pantalla);
-        - **por debajo**, hasta un 8 % bajo lo encontrado, si solo se ha encontrado el marco de
-          dentro: en un slinger, el borde negro no se distingue del fondo oscuro, y el número va
-          impreso en ese borde.
+        - **por debajo**, justo bajo lo encontrado (y 98–109 %), si solo se ha encontrado el marco
+          de dentro: en un slinger, el borde negro no se distingue del fondo oscuro, y el número va
+          impreso en ese borde. Empieza en el borde de abajo de la caja, no un 7 % por encima: ahí
+          está la línea de tipo, que tapaba el número (2026-09-16).
       - Se prueban por turnos, y la primera que da una línea que está en el catálogo se queda
         para toda la sesión: la mesa o el slinger no cambian de una carta a otra. Si falla 4
         lecturas seguidas (`FOUND_STRIP_PROBE`), se mira una vez la otra (`pickFoundStrip`). La
@@ -450,11 +451,59 @@ Cinco lecturas distintas en esos 3,4 s, unos 680 ms cada una:
   confundiendo la letra. Eso respalda el recurso del código a una letra de distancia: si no se
   puede leer mejor, hay que tolerarlo.
 
-**Sigue abierto:** por qué se pierden los primeros caracteres en el móvil. No se puede reproducir
-con lo que hay —las imágenes del catálogo están bien iluminadas y no fallan así, la foto real falla
-por sustitución (`N`→`W`) y no por pérdida, y los fotogramas del vídeo (384×848) no tienen
-resolución para volver a pasarles el OCR—. Haría falta **una foto fija del móvil, en la misma caja
-y con la misma luz, de una carta que no se lee.**
+**Por qué se pierden los primeros caracteres** no se pudo reproducir con lo que había entonces —las
+imágenes del catálogo están bien iluminadas y no fallan así, la foto real falla por sustitución
+(`N`→`W`) y no por pérdida, y los fotogramas del vídeo (384×848) no dan resolución para volver a
+pasarles el OCR—. Lo explicó la captura siguiente.
+
+### La captura de la Plains: la franja se comía los primeros caracteres (2026-09-16)
+
+Otra captura, una Plains de Secret Lair en la misma caja y con «Ver lo que lee» abierto: el panel
+leía `I SA` / `ALAYNA DANNER`, sin número. Midiendo los rectángulos que pinta la propia app sobre
+la captura (923×2000):
+
+- **caja verde** x 250–664, y 856–1430 (414×574, ratio 0,721);
+- **franja amarilla** desde x 254, y 1387, que es exactamente `x 0–55 %, y 93–108 %` de esa caja:
+  la franja de debajo, puesta donde dice el código.
+
+Y el perfil de luminancia por el centro de la carta da sus bordes reales: arriba en y 829 y abajo
+en y 1475. Es decir, **la caja verde no es la carta, es el marco de dentro**: va del 4,2 % al
+93,0 % de su alto. Su ratio es de carta (0,721 frente a 0,716) porque el marco interior también lo
+es, así que la forma no sirve para distinguirlos.
+
+De ahí salen los dos fallos que se ven en el panel:
+
+- **El borde de abajo de la caja es la línea de tipo.** Empezando la franja en el 93 % entraba
+  «Basic Land — Plains», en grande y con mucho contraste, encima de la línea del número, que es
+  diminuta. Por eso el OCR devolvía la línea de tipo o el artista, pero no el número.
+- **El borde izquierdo corta los primeros caracteres.** La línea del número empieza a la izquierda
+  del marco interior y la franja empieza en `x0 = 0` de la caja: en la captura se ve el recuadro
+  amarillo partiendo la `S` de `SLD` y dejando `D ★ EN`. Eso explica lo del vídeo, `248`→`48`→nada
+  y `AKH`→`KH`→`H`: no es que Tesseract los perdiera, es que no estaban en el recorte.
+
+**La franja nueva es x 0–45 %, y 98–109 %.** Sobre la foto real, con la caja que devolvió
+`findCard`:
+
+| Franja | Lectura | Número | Código |
+| --- | --- | --- | --- |
+| La de hoy (x 0–55 %, y 93–108 %) | `285 ⏎ WCC EN 5 ANTHONY PALUMBO` | sí | **no** |
+| **x 0–45 %, y 98–109 %** | `285 ⏎ C ⏎ NCC EN ANTHONY PALUMBO` | sí | **sí** |
+| x 0–45 %, y 100–109 % | `285 ⏎ NCC EN TT PALUMBO` | sí | sí |
+| x 0–45 %, y 102–111 % | `NCC EN ANTHONY PALUMBO` | **no** | sí |
+
+Bajar la franja recupera el código que **ninguna** mejora de imagen conseguía. El borde izquierdo
+apenas influye (con −6 % lee igual, con −10 % empeora el artista), así que se deja en 0 para no
+meter la funda ni el fondo.
+
+**Y una advertencia sobre el banco de pruebas.** Se rehízo la simulación con la caja medida aquí
+(del 4 % al 93 % del alto) y aun así **no reproduce el fallo**: con imágenes de catálogo, la franja
+de hoy saca el código en 8 de 15 y la nueva también en 8. Es lo esperable —los escaneos del
+catálogo están limpios, bien iluminados y a mucha resolución, y `NCC`→`WCC` es un problema de
+cámara: reflejos, funda, enfoque—. Así que **el banco solo vale para comprobar que una franja no se
+sale de sitio** (con la caja mal modelada, la nueva daba 0 de 15); quien decide es la foto real.
+
+**Sigue abierto:** comprobarlo en el móvil. Y que la votación necesita dos lecturas iguales, que
+con lecturas inestables tarda o no llega.
 
 ## Parámetros de ajuste
 

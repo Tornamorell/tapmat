@@ -824,6 +824,18 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
       y si encajan varias se eligen a mano. De punta a punta, 14 de 15 se resuelven. **Queda
       abierto** cuál de las dos franjas elige el móvil: en las capturas la amarilla caía sobre el
       texto de ambientación, no sobre el número.
+    - **Actualización (2026-09-16, la franja de debajo estaba mal puesta):** midiendo los
+      rectángulos que la propia app pinta en una captura del móvil, lo que encuentra `findCard` es
+      el **marco de dentro** de la carta (del 4,2 % al 93 % de su alto), no la carta; su ratio es
+      de carta (0,721) porque el marco interior también lo es. Su borde de abajo es la línea de
+      tipo, así que la franja, que empezaba en el 93 %, metía «Basic Land — Plains» en grande
+      encima del número; y al empezar en `x0 = 0` cortaba los primeros caracteres —se ve el
+      recuadro partiendo la `S` de `SLD`—, que es lo de `248`→`48`→nada del vídeo. La franja pasa a
+      **x 0–45 %, y 98–109 %**: sobre la foto real lee `NCC` donde antes leía `WCC`, que es lo que
+      no arreglaba ninguna mejora de imagen. **El banco de pruebas con imágenes de catálogo no
+      puede juzgar esto**, ni con la caja bien modelada: son escaneos limpios donde el código nunca
+      se lee mal, así que queda solo como comprobación de que la franja no se sale de sitio. Ver
+      `docs/scanner.md`.
   - Se puede apagar en los ajustes del escáner («Buscar la carta», `findCard` en el dispositivo).
   - `detectCardQuad` sigue enderezando la carta dentro de esa caja (D32), donde sí la llena.
   - Medido el 2026-09-14 con 5 fotos del slinger del usuario, recortadas a 16:9 como las ve el

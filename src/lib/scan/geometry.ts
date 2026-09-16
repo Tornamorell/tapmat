@@ -71,7 +71,13 @@ type Strip = { x0: number; x1: number; y0: number; y1: number };
 export type FoundStrip = "card" | "frame";
 export const FOUND_INFO_STRIPS: Record<FoundStrip, Strip> = {
   card: INFO_STRIP,
-  frame: { x0: 0, x1: 0.55, y0: 0.93, y1: 1.08 },
+  // Below the frame, starting at its bottom edge. What findCard locks onto is the card's inner
+  // frame, and that frame's bottom IS the type line: starting at 93 % put that line — big, bold
+  // and high contrast — inside the crop, where it drowned the collector line beneath it, and
+  // reaching to 55 % of the width dragged in the artist's column as well. Measured 2026-09-16 on
+  // a photo and a screenshot from the phone: the number sits at y 100–108 % of the box, and the
+  // strip as it was read "NCC" as "WCC" while this one reads it right (docs/scanner.md).
+  frame: { x0: 0, x1: 0.45, y0: 0.98, y1: 1.09 },
 };
 
 /** The smallest strip covering both: what the scanner marks while it doesn't know which reads. */
