@@ -119,9 +119,17 @@ paralelo sirvió 80 cartas en 4 s sin errores.
 **Recursos gráficos.**
 - Imagen de carta: `{image}/low.webp` (~245 px) y `{image}/high.webp` (~600 px); también hay
   `.png` y `.jpg`.
-- Logo de expansión: `{logo}.webp`.
-- **Símbolo:** `{symbol}.png`, pero muchos que la API anuncia dan 404. La sincronización hace un
-  HEAD y guarda null si no existe.
+- Logo de expansión: `{logo}.webp` y `{logo}.png`. Lo anuncian **todas** las expansiones.
+- **Símbolo: la URL tal cual, sin extensión** — `{symbol}`, no `{symbol}.png` (corregido el
+  2026-09-16). Con extensión da 404 casi siempre: pedir `.png` acertaba en 1 de las 203
+  expansiones guardadas, y por eso solo esa tenía icono. Comprobado en me01, me04, me05, sv09,
+  swsh1, sm1 y xy1: sin extensión devuelve 200, y `.png`, `.webp` y `.jpg` devuelven 404.
+  - 169 de las 218 expansiones anuncian símbolo. Las 49 que no son promos y rarezas (`base1`,
+    `jumbo`, `wp`, los trainer kits, `sve`…).
+  - De las que sí lo anuncian, alguna no existe igualmente (`sv03.5` da 404), así que la
+    sincronización sigue haciendo un HEAD y guardando null si no está.
+  - El símbolo es cuadrado y se pinta a 16 px (`SetIcon`); el logo es apaisado y no cabe en ese
+    hueco, así que no se usa como respaldo.
 
 **Primera sincronización completa** (2026-09-11, 6 peticiones en paralelo):
 - 7,5 minutos para 203 expansiones y 21 068 cartas, sin ningún 404.
