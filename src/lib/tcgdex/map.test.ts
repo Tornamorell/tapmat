@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { mapTcgdexCard, mapTcgdexSet, normalizeRarity, pokemonFinishes, pokemonTypeLine } from "./map";
+import {
+  mapTcgdexCard,
+  mapTcgdexSet,
+  normalizeRarity,
+  pokemonFinishes,
+  pokemonTypeLine,
+  symbolCandidates,
+} from "./map";
 import type { TcgdexCard } from "./types";
 
 const fetchedAt = new Date("2026-09-11T12:00:00Z");
@@ -121,5 +128,32 @@ describe("helpers", () => {
       null,
     );
     expect(row).toMatchObject({ game: "pokemon", code: "sv03.5", setType: "sv", cardCount: 207 });
+  });
+});
+
+describe("symbolCandidates", () => {
+  it("tries the language path first, then the one the API advertises", () => {
+    // 148 of the 169 sets that advertise a symbol keep it under /en/; me05 only under /univ/.
+    expect(symbolCandidates("https://assets.tcgdex.net/univ/me/me01/symbol", "me", "me01")).toEqual([
+      "https://assets.tcgdex.net/en/me/me01/symbol.png",
+      "https://assets.tcgdex.net/univ/me/me01/symbol.png",
+    ]);
+  });
+
+  it("builds the usual path for a set that advertises no symbol (me02, mep)", () => {
+    expect(symbolCandidates(null, "me", "me02")).toEqual([
+      "https://assets.tcgdex.net/en/me/me02/symbol.png",
+    ]);
+  });
+
+  it("doesn't repeat a candidate", () => {
+    expect(symbolCandidates("https://assets.tcgdex.net/en/me/me03/symbol", "me", "me03")).toEqual([
+      "https://assets.tcgdex.net/en/me/me03/symbol.png",
+    ]);
+  });
+
+  it("has nothing to try without a symbol and without a set", () => {
+    expect(symbolCandidates(null)).toEqual([]);
+    expect(symbolCandidates(undefined, "me")).toEqual([]);
   });
 });

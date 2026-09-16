@@ -140,6 +140,26 @@ export function mapTcgdexCard(
   };
 }
 
+/**
+ * Where a set's symbol may really be, best first. The API advertises it under `/univ/`, but that
+ * file is almost never there: of the 169 sets that advertise a symbol, 148 keep it under the
+ * language path (`/en/…`) and exactly one (me05) only under `/univ/`. And four sets don't
+ * advertise one at all yet still keep it where the others do (me02, mep, ex5.5, exu), so the
+ * conventional path is built from the serie and the code as a last try.
+ *
+ * Checked 2026-09-16. The caller keeps the first that really is an image (`assetExists`), because
+ * the asset host answers 200 with an HTML page for anything it hasn't got.
+ */
+export function symbolCandidates(
+  symbol: string | undefined | null,
+  serie?: string,
+  code?: string,
+): string[] {
+  const urls = symbol ? [`${symbol.replace("/univ/", "/en/")}.png`, `${symbol}.png`] : [];
+  if (serie && code) urls.push(`https://assets.tcgdex.net/en/${serie}/${code}/symbol.png`);
+  return [...new Set(urls)];
+}
+
 export function mapTcgdexSet(set: TcgdexSet, iconUri: string | null): SetRow {
   return {
     game: "pokemon",

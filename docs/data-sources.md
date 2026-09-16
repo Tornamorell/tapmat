@@ -120,11 +120,26 @@ paralelo sirvió 80 cartas en 4 s sin errores.
 - Imagen de carta: `{image}/low.webp` (~245 px) y `{image}/high.webp` (~600 px); también hay
   `.png` y `.jpg`.
 - Logo de expansión: `{logo}.webp` y `{logo}.png`. Lo anuncian **todas** las expansiones.
-- **Símbolo: `{symbol}.png`**, y casi ninguna expansión lo tiene de verdad. 169 de las 218
-  anuncian `symbol`, pero al pedir la imagen solo responde **una** de las 203 que guardamos
-  (me05: `image/png`, 2,4 KB); me01, sv09 y el resto de las probadas dan 404. El símbolo es
-  cuadrado y se pinta a 16 px (`SetIcon`); el logo es apaisado y no cabe ahí, así que no se usa
-  como respaldo.
+- **Símbolo: está en la ruta de idioma, no en la que anuncia la API.** El campo `symbol` apunta a
+  `https://assets.tcgdex.net/univ/<serie>/<set>/symbol`, y ese fichero casi nunca existe. Hay que
+  pedir `.png` **cambiando `/univ/` por `/en/`**. Medido el 2026-09-16 sobre las 169 que anuncian
+  símbolo:
+
+  | Variante | Con imagen de verdad |
+  | --- | --- |
+  | `/en/…symbol.png` | **148** |
+  | `/univ/…symbol.png` | 1 (me05) |
+  | `/univ/…symbol.webp`, `.jpg`, o sin extensión | 0 |
+
+  - Ninguna vale sola: en `/en/` no está me05 y en `/univ/` no están las demás. Y cuatro
+    expansiones **no anuncian símbolo** y aun así lo tienen donde el resto (me02, mep, ex5.5,
+    exu), así que hay una tercera candidata, construida con la serie y el código. De eso se
+    encarga `symbolCandidates()` (en `map.ts`), la mejor primero, y la sincronización se queda con
+    la primera que sea una imagen.
+  - De nuestras 203 expansiones, **147** tienen símbolo por alguna de las tres vías; 56 no lo
+    tienen por ninguna (promos, trainer kits, las de McDonald's…).
+  - Son cuadrados y pequeños (25×25, ~4 KB), así que entran en el hueco de 16 px de `SetIcon`. El
+    logo es apaisado (684×158, `logo.webp` de 24–140 KB) y no hace falta como respaldo.
 - **Trampa del servidor de recursos** (comprobada el 2026-09-16, y conviene no olvidarla):
   `assets.tcgdex.net` responde **200 con una página HTML de 295 bytes** a cualquier ruta que no
   tenga, incluidas las inventadas (`/univ/me/noexiste/symbol`). De ahí que:

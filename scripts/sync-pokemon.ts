@@ -20,7 +20,7 @@ import { snapshotPrices } from "../src/lib/prices/snapshot";
 import type { CatalogCardRow } from "../src/lib/scryfall/map";
 import { normalizeForSearch } from "../src/lib/search/normalize";
 import { assetExists, getCard, getSet, listCards, listSets } from "../src/lib/tcgdex/client";
-import { EXCLUDED_SERIES, mapTcgdexCard, mapTcgdexSet } from "../src/lib/tcgdex/map";
+import { EXCLUDED_SERIES, mapTcgdexCard, mapTcgdexSet, symbolCandidates } from "../src/lib/tcgdex/map";
 
 const ownedOnly = process.argv.includes("--owned-only");
 // Only refresh set metadata (~1 min), e.g. after adding a column to `sets`.
@@ -51,13 +51,20 @@ if (ownedOnly) {
   const sets = details.filter((s) => !EXCLUDED_SERIES.includes(s.serie.id));
 
   const setRows = await mapLimit(sets, CONCURRENCY, async (s) => {
-    // "<symbol>.png" is where the image really is: me05 serves image/png there. The bare URL the
-    // API gives looks like it works — it answers 200 — but the asset host answers 200 with a
-    // 295-byte HTML page for anything it hasn't got, made-up paths included, so it is not an
-    // image. Most sets simply have no symbol; assetExists checks the content type, not the
-    // status, so a page can't be stored as an icon. Checked 2026-09-16, docs/data-sources.md.
-    const icon = s.symbol ? `${s.symbol}.png` : null;
-    return mapTcgdexSet(s, icon && (await assetExists(icon)) ? icon : null);
+    // The API advertises the symbol under /univ/, where it almost never is: 148 of the 169 sets
+    // that advertise one keep it under the language path instead, me05 only under /univ/, and a
+    // few that advertise none at all still have one where the rest do. So try each in turn and
+    // keep the first that really is an image — the asset host answers 200 with a 295-byte HTML
+    // page for anything it hasn't got, so assetExists checks the content type and not the
+    // status. Checked 2026-09-16, docs/data-sources.md.
+    let icon: string | null = null;
+    for (const url of symbolCandidates(s.symbol, s.serie.id, s.id)) {
+      if (await assetExists(url)) {
+        icon = url;
+        break;
+      }
+    }
+    return mapTcgdexSet(s, icon);
   });
   await upsertSets(setRows);
   for (const s of sets) releaseBySet.set(s.id, s.releaseDate ?? null);
