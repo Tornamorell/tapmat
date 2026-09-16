@@ -413,10 +413,48 @@ marco antiguo de siempre, que se resuelve por título.
   **por encima** de ella. Las dos franjas no caen igual en un sitio y en otro, así que esas tablas
   miden el catálogo, no el móvil.
 
-**Sigue abierto: cuál de las dos franjas se elige en el móvil.** En las capturas la amarilla estaba
-sobre el texto de ambientación, así que la sesión se quedó con la que no toca. En la foto real la
-buena es la de debajo (la línea cae a y 100–107,5 % de la caja) y en la captura de pantalla la
-buena es la de encima. Falta ver con «Ver lo que lee», en el móvil, qué franja se usa y qué saca.
+**Cuál de las dos franjas se elige en el móvil** quedó en duda: en esas capturas la amarilla estaba
+sobre el texto de ambientación, en la foto real la buena es la de debajo (la línea cae a
+y 100–107,5 % de la caja) y en la captura de pantalla la buena es la de encima. La grabación de
+abajo lo aclara en parte: allí la franja **está bien puesta**.
+
+### La grabación con «Ver lo que lee» (2026-09-16)
+
+3,4 s leyendo una Sheltered Thicket (AKH 248/269) dentro de una caja. **La franja está bien
+puesta**: el recuadro amarillo cae sobre la línea y la miniatura del panel enseña `248/269 R` /
+`AKH • EN ✎ SUNG CHOI` perfectamente legibles. Lo que falla es la lectura.
+
+Cinco lecturas distintas en esos 3,4 s, unos 680 ms cada una:
+
+| Lecturas | Texto de Tesseract | `parseCollectorLine` |
+| --- | --- | --- |
+| 1–3 | `269 R ⏎ 4 ⏎ H EN SUNG CHOI` | **null**: `H` no llega a código y `269` no lleva barra |
+| 4 | `248/269 R ⏎ 4 ⏎ KH EN SUNG CHOI` | 248/269, sin código |
+| 5 | `48/269 R ⏎ Y AKH EN SUNG CHOI` | 48/269, código AKH |
+
+- **Tres de cinco lecturas no dan nada**, y las otras dos no coinciden: la clave de la votación
+  cambia cada vez y **nunca llega a 2 de 6, así que la carta no se añade nunca.** Eso es lo que se
+  ve como «la lee y no hace nada».
+- Se pierden los **primeros caracteres de las dos líneas**: `248`→`48`→nada, y `AKH`→`KH`→`H`.
+- **Tiempos**, del propio panel: `buscar` 118–130 ms, `número` 90–150, `título` 43–83 y `foto`
+  101–197 una de cada tres. De ahí los ~680 ms por lectura, y no los 250 de `TICK_MS`.
+
+**Dos hipótesis probadas y descartadas:**
+
+- **Un margen a la izquierda** de la franja, por si el borde se comiera el primer carácter: en las
+  15 cartas no mejora (9 de 15 con −2 % y 8 con −4 %, frente a 9). No se toca.
+- **La luz desigual** (sombra a la izquierda, brillo a la derecha) contra el estirado de contraste
+  global. Sobre la foto real se compararon el de hoy, por bandas (4, 8 y 16), CLAHE (32 y 64),
+  `normalise` y `sharpen`: **todas leen `WCC`**, ninguna recupera `NCC`; y a 220 px todas empeoran
+  y pierden el código entero. El código mal leído **no es un problema de luz**, es Tesseract
+  confundiendo la letra. Eso respalda el recurso del código a una letra de distancia: si no se
+  puede leer mejor, hay que tolerarlo.
+
+**Sigue abierto:** por qué se pierden los primeros caracteres en el móvil. No se puede reproducir
+con lo que hay —las imágenes del catálogo están bien iluminadas y no fallan así, la foto real falla
+por sustitución (`N`→`W`) y no por pérdida, y los fotogramas del vídeo (384×848) no tienen
+resolución para volver a pasarles el OCR—. Haría falta **una foto fija del móvil, en la misma caja
+y con la misma luz, de una carta que no se lee.**
 
 ## Parámetros de ajuste
 
