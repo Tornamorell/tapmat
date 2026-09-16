@@ -6,7 +6,7 @@ import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cardInPictureBlob } from "@/lib/card-photo";
-import { deleteCardPhoto, saveCardPhoto } from "../photo-actions";
+import { deleteCardPhoto, saveCardPhoto } from "@/app/(app)/cards/photo-actions";
 
 /**
  * «Añadir foto» / «Cambiar foto» for a card without a catalog image: camera or gallery, the
