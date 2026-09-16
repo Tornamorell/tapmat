@@ -806,14 +806,24 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
         se mira una vez la otra, por si se cambia de la mesa al slinger.
       - Una carta encontrada no se suelta, y por tanto no se vuelve a añadir, mientras siga a la
         vista, aunque no se lea nada en varias lecturas seguidas: así se duplicaban.
-    - **Actualización (2026-09-16, cartas normales que no se leían):** el problema no era el ritmo
-      ni dónde cae la franja, sino cómo se segmenta. La franja se lee ahora como texto disperso
-      (PSM 11) y no como un bloque: el nombre del artista va en una columna al lado del número y,
-      como bloque, Tesseract los juntaba. Medido con 15 cartas: 9 de 15 con número y código,
-      frente a 8, sin perder ninguna, corrigiendo dos lecturas equivocadas y 20 ms más rápido.
+    - **Actualización (2026-09-16, cartas normales que no se leían):** el problema no era el ritmo,
+      sino cómo se segmenta la franja. Se lee ahora como texto disperso (PSM 11) y no como un
+      bloque: el nombre del artista va en una columna al lado del número y, como bloque, Tesseract
+      los juntaba. Medido con 15 cartas: 9 de 15 con número y código, frente a 8, sin perder
+      ninguna, corrigiendo dos lecturas equivocadas y 20 ms más rápido.
       **Descartada** una franja más estrecha y ajustada a la línea: leía la foto con la que se
-      diseñó, pero baja a 6 de 15 porque en muchos marcos se come la fila del número. Ver
+      diseñó, pero baja a 6 de 15 porque en muchos marcos se come la fila del número. Y
+      **descartada otra vez** la franja única que cubre las dos posiciones: se reprobó ahora que
+      PSM 11 separa bloques, y se queda en 8 de 15, sin leer la foto real y 4× más lenta. Ver
       `docs/scanner.md`.
+    - **Actualización (2026-09-16, el código de expansión):** con la app ya desplegada, la carta se
+      leía («Leyendo NCC 285 EN…») y no se añadía: la franja daba `WCC` por `NCC` y `lookupScan`
+      exigía un código existente, así que devolvía cero candidatas. Ahora, como último recurso
+      —después del código exacto y del total impreso—, vale un código de la misma longitud que se
+      diferencie en una posición: el número sigue teniendo que cuadrar, así que no inventa cartas,
+      y si encajan varias se eligen a mano. De punta a punta, 14 de 15 se resuelven. **Queda
+      abierto** cuál de las dos franjas elige el móvil: en las capturas la amarilla caía sobre el
+      texto de ambientación, no sobre el número.
   - Se puede apagar en los ajustes del escáner («Buscar la carta», `findCard` en el dispositivo).
   - `detectCardQuad` sigue enderezando la carta dentro de esa caja (D32), donde sí la llena.
   - Medido el 2026-09-14 con 5 fotos del slinger del usuario, recortadas a 16:9 como las ve el

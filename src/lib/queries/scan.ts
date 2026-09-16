@@ -50,7 +50,9 @@ async function find(where: string, params: unknown[]) {
  * filters out most OCR noise. Order of evidence:
  *   1. a set chosen by the user ("fixed set" mode: only the number needs reading),
  *   2. a set code read on the card (Magic, Pokémon SV+),
- *   3. the printed total ("001/195"), for cards without a code.
+ *   3. the printed total ("001/195"), for cards without a code,
+ *   4. a set code one character off ("WCC" read on an NCC card), as a last resort: OCR gets the
+ *      number right far more often than the code (14 of 15 against 9 of 15, docs/scanner.md).
  * More than one match means the caller must let the user pick.
  */
 export async function lookupScan(
@@ -82,7 +84,26 @@ export async function lookupScan(
   }
 
   if (line.total) {
-    return find(`${byNumber} and s.printed_total = $2`, [numbers, Number(line.total)]);
+    const rows = await find(`${byNumber} and s.printed_total = $2`, [numbers, Number(line.total)]);
+    if (rows.length) return rows;
+  }
+
+  // Nothing matched the code as read. One wrong character threw away a card whose number was
+  // read right ("NCC" as "WCC"), which is the common failure: so accept a code of the same
+  // length that differs in a single position. The number still has to match, so this can't
+  // invent a card; when several printings fit, the caller shows them to pick from.
+  if (line.setCodes.length) {
+    return find(
+      `${byNumber} and exists (
+         select 1
+         from unnest($2::text[]) as t(read_code)
+         cross join generate_series(1, length(t.read_code)) as pos
+         where length(upper(coalesce(s.print_code, s.code))) = length(t.read_code)
+           and overlay(upper(coalesce(s.print_code, s.code)) placing '' from pos for 1)
+               = overlay(t.read_code placing '' from pos for 1)
+       )`,
+      [numbers, line.setCodes],
+    );
   }
   return [];
 }

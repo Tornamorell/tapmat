@@ -385,6 +385,39 @@ simular el marco que se encuentra en un slinger), puntuando contra el propio cat
   transparente: ese negro falso hundía el mínimo del estirado de contraste y deslavaba el texto.
   Ahora se recorta a lo que existe.
 
+### Con la app ya desplegada (2026-09-16, dos capturas del móvil)
+
+Con el cambio en producción, el usuario mandó dos capturas escaneando cartas dentro de una caja.
+Dicen dos cosas:
+
+- **La lectura sí funciona:** en la Cultivate el estado ponía «Leyendo NCC 285 EN…», o sea número,
+  expansión e idioma correctos. Pero la carta no se añadía.
+- **La franja amarilla caía sobre el texto de ambientación**, no sobre el número.
+
+Lo primero tenía una causa clara. Sobre la foto real, la franja da `285` + `WCC` (una letra mal en
+`NCC`), y `lookupScan` exigía que el código existiera: con un código que no existe y sin total,
+devolvía cero candidatas. **La carta se leía bien y se tiraba.** Por eso ahora, como último
+recurso —después del código exacto y del total impreso—, vale un código de la misma longitud que
+se diferencie en una sola posición. El número sigue teniendo que cuadrar, así que no puede
+inventarse una carta; si encajan varias, se eligen a mano, como siempre.
+
+Medido de punta a punta con las mismas 15 cartas (franja → `parseCollectorLine` → `lookupScan`):
+**14 de 15 se resuelven**, 13 como única o primera candidata. La única que no, M10 146, es el
+marco antiguo de siempre, que se resuelve por título.
+
+- **Descartada otra vez la franja única** que cubre las dos posiciones (x 0–55 %, y 89,5–108 %).
+  Se volvió a probar ahora que PSM 11 separa bloques, que era la pega de 2026-09-14: se queda en
+  8 de 15 (frente a 9), no lee nada en la foto real y tarda 131–259 ms en vez de 34–44.
+- **Cuidado con las mediciones simuladas:** la caja que usan (la imagen del catálogo metida un
+  4 %) **contiene** la línea del número, mientras que la caja real de `findCard` a menudo acaba
+  **por encima** de ella. Las dos franjas no caen igual en un sitio y en otro, así que esas tablas
+  miden el catálogo, no el móvil.
+
+**Sigue abierto: cuál de las dos franjas se elige en el móvil.** En las capturas la amarilla estaba
+sobre el texto de ambientación, así que la sesión se quedó con la que no toca. En la foto real la
+buena es la de debajo (la línea cae a y 100–107,5 % de la caja) y en la captura de pantalla la
+buena es la de encima. Falta ver con «Ver lo que lee», en el móvil, qué franja se usa y qué saca.
+
 ## Parámetros de ajuste
 
 En `scanner.tsx`:
