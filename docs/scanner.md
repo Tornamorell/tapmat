@@ -73,6 +73,12 @@ cámara trasera (getUserMedia, se piden 3840×2160; el móvil da lo que puede)
   momento, y se añadía dos veces. Si en ese caso se vuelve a leer, avisa «ya está añadida: si es
   otra copia, pulsa +». También si «Identificar con IA» da la carta que se acaba de añadir. Para
   otra copia está el **+**.
+- **La tira de «elige cuál es» no vuelve a salir** después de elegir una edición, mientras la carta
+  siga delante de la cámara. Antes sí: la lectura siguiente encontraba las mismas candidatas y la
+  tira reaparecía, como si la elección no hubiera contado, e invitaba a elegir otra vez. Se
+  recuerda qué candidatas se han respondido (`resolvedChoices`) y se olvida cuando la carta sale
+  del encuadre, igual que con la carta recién añadida (2026-09-16). No basta con `choicesKey`,
+  porque `add()` lo borra en cada alta.
 - **Escaneando a la caja de un mazo** (D35): si la ubicación de la sesión es la caja de un mazo,
   se manda su `deckId` con la búsqueda y las cartas que ya están en su lista se ponen delante
   (`preferListed`, en `src/lib/scan/prefer.ts`, puro y con tests). Si de las candidatas solo una

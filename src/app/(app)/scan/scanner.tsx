@@ -305,6 +305,9 @@ export function Scanner({
     holdId: null as string | null,
     tick: 0,
     choicesKey: "",
+    /** Candidates already answered by picking one, so the chooser doesn't come back while the
+     * card is still in view. Cleared when it leaves (noRead), as `holdId` is. */
+    resolvedChoices: "",
     mode: "",
     /** The strip that read a found card the catalog knows (D36), kept for the session. */
     foundStrip: null as FoundStrip | null,
@@ -548,6 +551,8 @@ export function Scanner({
       } else {
         s.holdId = null;
         s.lastTitle = null;
+        // The card is gone: if it comes back and is ambiguous again, ask again.
+        s.resolvedChoices = "";
       }
     }
   }
@@ -560,6 +565,13 @@ export function Scanner({
     }
     if (matches.length > 1) {
       const key = matches.map((m) => m.id).join();
+      // Already answered for this card, and it hasn't left the view yet: don't ask again. The
+      // chooser used to come straight back after picking, because the next read finds the very
+      // same candidates, and it looked as though the pick hadn't counted.
+      if (key === s.resolvedChoices) {
+        progress();
+        return;
+      }
       if (key !== s.choicesKey) {
         s.choicesKey = key;
         setChoices({ matches, lang });
@@ -850,6 +862,11 @@ export function Scanner({
 
   function choose(match: ScanMatch) {
     const lang = choices?.lang ?? null;
+    // Remember that these candidates have been answered. The card is still in front of the
+    // camera, so the next read turns up the same ones; `add` clears `choicesKey`, so that alone
+    // wouldn't hold the chooser back. Forgotten when the card leaves the view (noRead), as
+    // `holdId` is.
+    readState.current.resolvedChoices = choices?.matches.map((m) => m.id).join() ?? "";
     setChoices(null);
     readState.current.holdId = match.id;
     readState.current.choicesKey = "";
@@ -1055,6 +1072,7 @@ export function Scanner({
         empty: 0,
         holdId: null,
         choicesKey: "",
+        resolvedChoices: "",
         lastTitle: null,
         foundStrip: null,
       };
