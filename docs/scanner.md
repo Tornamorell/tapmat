@@ -59,6 +59,12 @@ cámara trasera (getUserMedia, se piden 3840×2160; el móvil da lo que puede)
     las más recientes primero, y se elige por la imagen (`titleLogoSuffixes` en `games.ts`).
   - Devuelve las ediciones de esa carta. Sin expansión fija suelen ser varias y se elige por la
     imagen; con expansión fija, normalmente una.
+- **The List (PLST y ULST):** llevan impresos el símbolo y el número de su expansión original, así
+  que su franja se lee igual que la del original. En el catálogo van numeradas
+  `<EXPANSIÓN>-<NÚMERO>` —`M10-227` para la Rootbound Crag de M10 #227—, así que la búsqueda prueba
+  también esa forma (`listReprintNumbers`) y ofrece las dos ediciones, el original primero. Antes
+  solo salía el original y la carta se archivaba mal; para corregir las que ya lo estén, el menú ⋯
+  de un montón tiene «Cambiar expansión…».
 - **Lecturas ambiguas:** si caben varias cartas, se muestran hasta 24 candidatas, las más
   recientes primero, para elegir por la imagen.
 - **Añadir la misma carta dos veces:** tras añadir una, no se vuelve a añadir hasta que se lean 3

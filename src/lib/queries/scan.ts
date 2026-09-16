@@ -1,6 +1,6 @@
 import { pool } from "@/db/client";
 import { gameById, rarityLabel } from "@/lib/games";
-import { numberVariants, type CollectorLine } from "@/lib/scan/parse";
+import { listReprintNumbers, numberVariants, type CollectorLine } from "@/lib/scan/parse";
 import {
   seriesFirst,
   splitNumber,
@@ -48,6 +48,18 @@ async function find(where: string, params: unknown[]) {
 }
 
 /**
+ * The same read plus its The List reprint, when the catalog has one: that card is numbered with
+ * the original set's code and number, so it answers to the same strip. The original printing
+ * stays first — it's the usual one — and the picture decides between them.
+ */
+async function addListReprints(rows: ScanMatch[], reprints: string[]): Promise<ScanMatch[]> {
+  if (!reprints.length) return rows;
+  const found = await find("c.collector_number = any($1::text[])", [reprints]);
+  const seen = new Set(rows.map((r) => r.id));
+  return [...rows, ...found.filter((r) => !seen.has(r.id))];
+}
+
+/**
  * Finds the printings a collector-line read can refer to. Only catalog hits count, which
  * filters out most OCR noise. Order of evidence:
  *   1. a set chosen by the user ("fixed set" mode: only the number needs reading),
@@ -63,10 +75,15 @@ export async function lookupScan(
 ): Promise<ScanMatch[]> {
   const numbers = numberVariants(line.number);
   const byNumber = "c.collector_number = any($1::text[])";
+  // A The List card prints the original set's symbol and number, so the strip can't tell it from
+  // the original printing; the catalog numbers it "M10-227". Looking that spelling up too is what
+  // stops one being filed as its original set — both are offered, the original first.
+  const reprints = listReprintNumbers(line.setCodes, numbers);
 
   if (fixedSet) {
+    // With the set fixed to The List, only the dashed spelling can match at all.
     return find(`${byNumber} and s.game = $2 and lower(s.code) = lower($3)`, [
-      numbers,
+      [...numbers, ...reprints],
       fixedSet.game,
       fixedSet.code,
     ]);
@@ -77,12 +94,14 @@ export async function lookupScan(
       `${byNumber} and (lower(s.code) = any($2::text[]) or upper(s.print_code) = any($3::text[]))`,
       [numbers, line.setCodes.map((c) => c.toLowerCase()), line.setCodes],
     );
-    if (rows.length > 1 && line.total) {
-      const total = Number(line.total);
-      const exact = rows.filter((r) => r.printedTotal === total);
-      if (exact.length) return exact;
-    }
-    if (rows.length) return rows;
+    // The printed total is the original set's, so it never narrows to the reprint by itself.
+    const total = Number(line.total);
+    const narrowed =
+      rows.length > 1 && line.total && rows.some((r) => r.printedTotal === total)
+        ? rows.filter((r) => r.printedTotal === total)
+        : rows;
+    const withReprints = await addListReprints(narrowed, reprints);
+    if (withReprints.length) return withReprints;
   }
 
   if (line.total) {

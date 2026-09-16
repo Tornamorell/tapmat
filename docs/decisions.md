@@ -94,6 +94,21 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
     se quedaba en «Mew».
   - Descartado insistir con la franja de datos en las promos SVP y las full art: Tesseract no
     la lee ni más estrecha, ni invertida, ni binarizada. Mediciones en `docs/scanner.md`.
+- **Actualización (2026-09-16, The List):** el escáner leía bien la carta pero la archivaba en la
+  expansión equivocada. Una carta de The List lleva impresos el símbolo y el número de su
+  expansión **original**, así que su franja se lee igual que la del original; en el catálogo va
+  numerada `<EXPANSIÓN>-<NÚMERO>` (`M10-227`), y 5 659 de las 5 725 de PLST y ULST siguen ese
+  formato. Con la consulta de antes solo podía salir el original: la edición de The List era
+  inalcanzable.
+  - Ahora, cuando la lectura trae código y número, se busca también esa forma con guion
+    (`listReprintNumbers`, puro y con tests) y **se ofrecen las dos**, el original primero, para
+    elegir por la imagen. Con la expansión fija en The List, es además la única forma que casa.
+  - Para arreglar las que ya están mal, el menú ⋯ de un montón tiene **«Cambiar expansión…»**
+    (`changePrinting`), que lo pasa a otra edición **de la misma carta** —mismo `oracle_id`, para
+    que editar no pueda convertir una carta en otra— y lo junta con un montón igual si lo hay. Si
+    la edición nueva no sale en el acabado que tenía, se ajusta y se avisa.
+  - **Descartado:** adivinar cuál de las dos es. No hay nada en la franja que las distinga, que
+    es justo lo que hace que el problema exista.
 
 ## D07 · Idioma por copia; precio de la edición inglesa — 2026-09-11 · provisional
 

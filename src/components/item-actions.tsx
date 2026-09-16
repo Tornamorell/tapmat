@@ -1,10 +1,11 @@
 "use client";
 
 import { MinusIcon, MoreHorizontalIcon, PlusIcon } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
   addInventoryToCollection,
+  changePrinting,
   changeQuantity,
   deleteItem,
   splitItem,
@@ -102,7 +103,7 @@ export function ItemActions({
   collections: CollectionOption[];
 }) {
   const [dialog, setDialog] = useState<
-    "edit" | "move" | "collection" | "split" | "delete" | null
+    "edit" | "printing" | "move" | "collection" | "split" | "delete" | null
   >(null);
   const close = () => setDialog(null);
 
@@ -118,6 +119,9 @@ export function ItemActions({
           <DropdownMenuItem onClick={() => setDialog("edit")}>
             {item.gradingCompany ? "Editar" : "Editar o marcar gradeada"}
           </DropdownMenuItem>
+          {item.catalogCardId && (
+            <DropdownMenuItem onClick={() => setDialog("printing")}>Cambiar expansión…</DropdownMenuItem>
+          )}
           <DropdownMenuItem onClick={() => setDialog("move")}>Mover…</DropdownMenuItem>
           {item.catalogCardId && (
             <DropdownMenuItem onClick={() => setDialog("collection")}>
@@ -144,6 +148,7 @@ export function ItemActions({
           onClose={close}
         />
       )}
+      {dialog === "printing" && <PrintingDialog item={item} onClose={close} />}
       {dialog === "collection" && (
         <CollectionDialog item={item} collections={collections} onClose={close} />
       )}
@@ -392,6 +397,106 @@ function EditDialog({
             </Button>
           </DialogFooter>
         </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+type PrintingOption = {
+  id: string;
+  setCode: string;
+  setName: string | null;
+  collectorNumber: string;
+};
+
+/**
+ * Re-files a stack under another edition of the same card. The scanner reads what's printed on
+ * the card, and a The List reprint shows its original set's symbol and number, so it can end up
+ * filed as that original edition: this is how to put it right afterwards.
+ */
+function PrintingDialog({ item, onClose }: { item: ActionItem; onClose: () => void }) {
+  const [printings, setPrintings] = useState<PrintingOption[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [chosen, setChosen] = useState("");
+  const [pending, startTransition] = useTransition();
+
+  // Loaded when the dialog opens: a popular card has dozens of editions.
+  useEffect(() => {
+    let alive = true;
+    fetch(`/api/printings?cardId=${item.catalogCardId}`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("no"))))
+      .then((data: PrintingOption[]) => alive && setPrintings(data))
+      .catch(() => alive && setFailed(true));
+    return () => {
+      alive = false;
+    };
+  }, [item.catalogCardId]);
+
+  function save() {
+    startTransition(async () => {
+      try {
+        const r = await changePrinting(item.id, chosen);
+        const extra = [
+          r.merged && "se ha juntado con un montón igual",
+          r.finishChanged && "esa edición no sale en el acabado que tenía",
+        ]
+          .filter(Boolean)
+          .join(" y ");
+        toast.success(
+          `${r.name} ahora es ${r.setCode.toUpperCase()} #${r.number}${extra ? ` · ${extra}` : ""}`,
+        );
+        onClose();
+      } catch {
+        toast.error("No se ha podido cambiar la expansión.");
+      }
+    });
+  }
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Cambiar la expansión de {item.name}</DialogTitle>
+          <DialogDescription>
+            Las mismas copias, bajo otra edición de la misma carta. Útil con The List, que lleva
+            impreso el símbolo y el número de su expansión original.
+          </DialogDescription>
+        </DialogHeader>
+        {failed ? (
+          <p className="text-muted-foreground text-sm">No se han podido cargar las ediciones.</p>
+        ) : !printings ? (
+          <p className="text-muted-foreground text-sm">Cargando ediciones…</p>
+        ) : printings.length < 2 ? (
+          <p className="text-muted-foreground text-sm">Esta carta solo tiene una edición.</p>
+        ) : (
+          <select
+            className={selectClass}
+            value={chosen}
+            onChange={(e) => setChosen(e.target.value)}
+            aria-label="Edición"
+          >
+            <option value="">Elige una edición</option>
+            {printings.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.setCode.toUpperCase()} #{p.collectorNumber}
+                {p.setName ? ` · ${p.setName}` : ""}
+                {p.id === item.catalogCardId ? " (la de ahora)" : ""}
+              </option>
+            ))}
+          </select>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button
+            disabled={!chosen || chosen === item.catalogCardId || pending}
+            aria-busy={pending || undefined}
+            onClick={save}
+          >
+            {pending ? "Guardando…" : "Cambiar expansión"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

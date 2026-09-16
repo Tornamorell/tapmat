@@ -109,6 +109,16 @@ export function numberVariants(number: string): string[] {
 }
 
 /**
+ * How The List (PLST) and its Unfinity edition (ULST) number a reprint: the original set's code
+ * and number, "M10-227". The card itself carries the original set's symbol and number, so the
+ * info strip reads exactly like the original printing, and only this spelling finds the reprint
+ * in the catalog — which is why a The List card used to be filed as its original set.
+ */
+export function listReprintNumbers(setCodes: string[], numbers: string[]): string[] {
+  return [...new Set(setCodes.flatMap((code) => numbers.map((n) => `${code.toUpperCase()}-${n}`)))];
+}
+
+/**
  * The one spelling that identifies a number, for comparing two reads: "0001", "001" and "1" are
  * the same card. Not `numberVariants()[1]`, which is undefined for a number without leading
  * zeros ("107", "285"), so every such read compared equal to every other one.

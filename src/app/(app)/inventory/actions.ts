@@ -449,6 +449,80 @@ export async function changeFinish(itemId: string, count: number, finish: Finish
   return { itemId: targetId };
 }
 
+/**
+ * Re-files a stack under another printing of the same card. The scanner reads the number and set
+ * code printed on the card, and a The List reprint carries its *original* set's, so a card can
+ * end up filed as the wrong edition — this is how that gets corrected afterwards.
+ *
+ * Only between printings of the same card (same `oracle_id`), so an edit can never turn one card
+ * into a different one. Merges into an identical stack of the new printing, the way a move does.
+ */
+export async function changePrinting(itemId: string, catalogCardId: string) {
+  const user = await requireUser();
+  const item = await ownedItem(user.id, itemId);
+  const targetId = z.uuid().parse(catalogCardId);
+
+  const [to] = await db
+    .select({
+      oracleId: catalogCards.oracleId,
+      name: catalogCards.name,
+      setCode: catalogCards.setCode,
+      number: catalogCards.collectorNumber,
+      finishes: catalogCards.finishes,
+    })
+    .from(catalogCards)
+    .where(eq(catalogCards.id, targetId));
+  if (!to) throw new Error("Edición no encontrada");
+  if (item.catalogCardId === targetId) {
+    return { name: to.name, setCode: to.setCode, number: to.number, finishChanged: null, merged: false };
+  }
+
+  const [from] = item.catalogCardId
+    ? await db
+        .select({ oracleId: catalogCards.oracleId })
+        .from(catalogCards)
+        .where(eq(catalogCards.id, item.catalogCardId))
+    : [];
+  if (!from?.oracleId || !to.oracleId || from.oracleId !== to.oracleId) {
+    throw new Error("Solo se puede cambiar entre ediciones de la misma carta");
+  }
+
+  // An edition may not come in the finish this stack has (one printed only foil, or only normal).
+  const finish = (to.finishes.includes(item.finish) ? item.finish : (to.finishes[0] ?? item.finish)) as Finish;
+  const next = { catalogCardId: targetId, finish };
+  const plain = !item.gradingCompany && item.estimatedValueEur == null;
+
+  let merged = false;
+  await db.transaction(async (tx) => {
+    const [same] = plain
+      ? await tx
+          .select({ id: items.id })
+          .from(items)
+          .where(and(sameStack(user.id, { ...item, ...next }), ne(items.id, item.id)))
+          .limit(1)
+      : [];
+    if (same) {
+      await tx
+        .update(items)
+        .set({ quantity: sql`${items.quantity} + ${item.quantity}` })
+        .where(eq(items.id, same.id));
+      await tx.delete(items).where(eq(items.id, item.id));
+      merged = true;
+    } else {
+      await tx.update(items).set(next).where(eq(items.id, item.id));
+    }
+  });
+
+  refresh();
+  return {
+    name: to.name,
+    setCode: to.setCode,
+    number: to.number,
+    finishChanged: finish === item.finish ? null : finish,
+    merged,
+  };
+}
+
 const moveInput = z.object({
   /** Stacks to move: whole, or just `count` of their copies (a scan session's own copies). */
   stacks: z

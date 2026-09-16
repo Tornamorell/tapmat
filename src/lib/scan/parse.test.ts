@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { canonicalNumber, numberVariants, parseCollectorLine, parseTitle, sameLine } from "./parse";
+import {
+  canonicalNumber,
+  listReprintNumbers,
+  numberVariants,
+  parseCollectorLine,
+  parseTitle,
+  sameLine,
+} from "./parse";
 
 // Inputs are real Tesseract outputs on card scans (2026-09-11, see docs/scanner.md),
 // with "⏎" where Tesseract returned a line break.
@@ -70,6 +77,21 @@ describe("numberVariants", () => {
     expect(numberVariants("107")).toEqual(["107"]);
     expect(numberVariants("12a")).toEqual(["12a"]);
     expect(numberVariants("7")).toEqual(["7", "007"]);
+  });
+});
+
+describe("listReprintNumbers", () => {
+  it("spells a The List reprint as <SET>-<NUMBER>", () => {
+    // Rootbound Crag is m10 #227, and its The List reprint is plst #M10-227.
+    expect(listReprintNumbers(["M10"], ["227"])).toEqual(["M10-227"]);
+  });
+
+  it("covers every code and spelling that was read, without repeating", () => {
+    expect(listReprintNumbers(["m10", "M10"], ["0227", "227"])).toEqual(["M10-0227", "M10-227"]);
+  });
+
+  it("has nothing to try without a set code", () => {
+    expect(listReprintNumbers([], ["227"])).toEqual([]);
   });
 });
 
