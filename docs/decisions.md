@@ -645,6 +645,18 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
   - Medido el 2026-09-12: 0–2 px de error en composiciones con esquinas conocidas, y bien en
     tres fotos reales (fondo rojo y tapete verde con textura, con el borde inferior de césped
     sobre verde). 50–150 ms por foto en un Mac.
+- **Actualización (2026-09-16, una foto que ya es la carta):** al subir desde la ficha una foto ya
+  recortada a la carta, el recortador se comía sus bordes. En una imagen así el borde exterior de
+  la carta **es** el borde de la imagen, y ahí no hay gradiente que `detectCardQuad` pueda ver
+  —`gradients()` se salta la fila y la columna de fuera, y los picos se buscan desde `k = 2`—, así
+  que las únicas rectas que quedan son las del marco interior del diseño… que es justo la que
+  `fitSide` elige, por ser la más exterior que encuentra. Ninguna de las dos guardas lo frena: ese
+  marco ocupa ~0,8 del área (el mínimo es 0,35) y su forma es casi la de una carta.
+  - Ahora, si la imagen ya tiene forma de carta (`isAlreadyCard`, a 0,02 de 63×88), se toma tal
+    cual y no se buscan bordes. La tolerancia es estrecha a propósito: una foto vertical 3:4 está
+    a 0,034 de la forma de una carta, y esas sí hay que buscarlas y enderezarlas.
+  - Solo cambia «Añadir foto» de la ficha (`cardInPictureBlob`). El escáner sigue igual: busca
+    alrededor del recuadro, donde de verdad hay mesa alrededor de la carta.
 - **Descartado:**
   - Pedir las esquinas a la IA: imprecisa (arriba).
   - Modelos que generan imágenes: inventarían detalles de la carta.

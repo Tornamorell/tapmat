@@ -20,6 +20,22 @@ const WIDTH = 300;
 const HEIGHT = 419; // 63×88
 const DETECT_WIDTH = 360; // px the edges are searched at: enough, and fast on a phone
 const GUIDE_MARGIN = 0.12; // the card may stick out of the guide: search this much around it
+/**
+ * How close to 63×88 a picture must be to count as already cropped to the card. Tight on
+ * purpose: an ordinary 3:4 portrait photo is 0.75 against a card's 0.716, only 0.034 away, and
+ * those do need finding and straightening.
+ */
+const CROPPED_TOLERANCE = 0.02;
+
+/**
+ * Whether a picture is already the card, edge to edge. Then there is nothing around it to find:
+ * its outer edge IS the image's border, which has no gradient for `detectCardQuad` to see, so
+ * the only straight lines left are the design's inner frame — and straightening to that crops
+ * the card's borders off. Such a picture is taken as it is (D32).
+ */
+export function isAlreadyCard(width: number, height: number): boolean {
+  return height > 0 && width > 0 && Math.abs(width / height - RATIO) <= CROPPED_TOLERANCE;
+}
 
 type Rect = { x: number; y: number; w: number; h: number };
 
@@ -67,13 +83,21 @@ function straighten(source: CanvasImageSource, search: Rect, outW: number, outH:
 }
 
 /** The card straightened on an outW×outH canvas or, if its edges aren't clear, `fallback` as it is. */
-function cardImage(source: CanvasImageSource, search: Rect, fallback: Rect, outW: number, outH: number) {
+function cardImage(
+  source: CanvasImageSource,
+  search: Rect,
+  fallback: Rect,
+  outW: number,
+  outH: number,
+  /** Off when the picture is already the card: there are no edges around it left to find. */
+  findEdges = true,
+) {
   const out = document.createElement("canvas");
   out.width = outW;
   out.height = outH;
   const ctx = out.getContext("2d")!;
   try {
-    const flat = straighten(source, search, outW, outH);
+    const flat = findEdges ? straighten(source, search, outW, outH) : null;
     if (flat) {
       ctx.putImageData(new ImageData(flat, outW, outH), 0, 0);
       return out;
@@ -135,8 +159,17 @@ export function findCardIn(source: CanvasImageSource, area: Rect): Quad | null {
   return { tl: at(tl), tr: at(tr), br: at(br), bl: at(bl) };
 }
 
-/** The card in a picture of it (camera or gallery), as a 300×419 shared photo. */
+/**
+ * The card in a picture of it (camera or gallery), as a 300×419 shared photo. A picture that is
+ * already cropped to the card is kept whole (`isAlreadyCard`): looking for its edges would find
+ * the design's inner frame and cut the borders off.
+ */
 export function cardInPictureBlob(source: CanvasImageSource) {
   const { w, h } = sourceSize(source);
-  return jpeg(cardImage(source, { x: 0, y: 0, w, h }, centerCardRect(w, h), WIDTH, HEIGHT), 0.82);
+  const cropped = isAlreadyCard(w, h);
+  const whole = { x: 0, y: 0, w, h };
+  return jpeg(
+    cardImage(source, whole, cropped ? whole : centerCardRect(w, h), WIDTH, HEIGHT, !cropped),
+    0.82,
+  );
 }
