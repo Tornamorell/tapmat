@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { CardThumb } from "@/components/card-thumb";
 import { cardPhotoUrl } from "@/lib/card-photo";
-import { listPhotosForReview, listUsersForAdmin } from "@/lib/queries/admin";
+import { listCardsWithoutPhoto, listPhotosForReview, listUsersForAdmin } from "@/lib/queries/admin";
 import { requireAdmin } from "@/lib/session";
 import { NewUserForm } from "./new-user-form";
 import { PhotoReview } from "./photo-review";
@@ -10,7 +12,11 @@ export const metadata: Metadata = { title: "Administración" };
 
 export default async function AdminPage() {
   const me = await requireAdmin();
-  const [users, photos] = await Promise.all([listUsersForAdmin(), listPhotosForReview()]);
+  const [users, photos, missing] = await Promise.all([
+    listUsersForAdmin(),
+    listPhotosForReview(),
+    listCardsWithoutPhoto(),
+  ]);
   const toReview = photos.filter((p) => !p.reviewedAt).length;
 
   return (
@@ -57,6 +63,48 @@ export default async function AdminPage() {
             reviewer: p.reviewer,
           }))}
         />
+
+        <div className="space-y-2 border-t pt-4">
+          <h3 className="font-medium">
+            Sin foto <span className="text-muted-foreground font-normal tabular-nums">({missing.length})</span>
+          </h3>
+          <p className="text-muted-foreground max-w-prose text-sm">
+            Cartas que alguien guarda en una ubicación o ha puesto en una colección y no tienen
+            imagen, ni la de su fuente ni una compartida. Entra en la carta para hacerle una foto.
+          </p>
+          {missing.length ? (
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+              {missing.map((m) => (
+                <li key={m.catalogCardId} className="space-y-1.5">
+                  <Link href={`/cards/${m.catalogCardId}`} className="block">
+                    <CardThumb src={null} alt={m.name} size="md" className="w-full!" />
+                  </Link>
+                  <div className="space-y-0.5 text-xs leading-tight">
+                    <p className="truncate font-medium" title={m.name}>
+                      {m.name}
+                    </p>
+                    <p className="text-muted-foreground truncate">
+                      {m.setCode.toUpperCase()} #{m.number}
+                    </p>
+                    <p className="text-muted-foreground truncate">
+                      {[
+                        m.copies > 0 && `${m.copies} ${m.copies === 1 ? "copia" : "copias"}`,
+                        m.collections > 0 &&
+                          `${m.collections} ${m.collections === 1 ? "colección" : "colecciones"}`,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-muted-foreground text-sm">
+              Todas las cartas que hay en ubicaciones y colecciones tienen imagen.
+            </p>
+          )}
+        </div>
       </section>
     </div>
   );

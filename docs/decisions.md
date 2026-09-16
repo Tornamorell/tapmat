@@ -551,6 +551,14 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
     enlazar las fotos después de cada lote (`restorePhotoUrls()`).
   - Espacio: unos 20 MB por álbum entero. Se vigila el medio GB de Neon, y si aprieta se pasan
     a un almacenamiento de ficheros como Cloudflare R2.
+  - **Actualización (2026-09-16):** en `/admin`, debajo de las fotos compartidas, salen también
+    las **cartas sin imagen que alguien guarda en una ubicación o ha puesto en una colección**
+    (`listCardsWithoutPhoto`), con cuántas copias y en cuántas colecciones están, enlazando a la
+    carta para hacerle la foto. Son las que se ven con el hueco gris al usar la app, así que son
+    las que compensa fotografiar: el resto del catálogo sin imagen (miles) no se lista.
+    - «Sin imagen» es `catalog_cards.image_small is null`, que cubre los dos casos a la vez —ni
+      su fuente traía imagen ni nadie ha compartido una—, porque compartir una escribe ahí su
+      URL y borrarla la vuelve a dejar en null (`saveCardPhoto` / `deleteCardPhoto`).
 - **Descartado:**
   - Fotos privadas de cada usuario: el usuario prefiere compartirlas.
   - Imágenes de terceros.

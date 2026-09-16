@@ -47,6 +47,43 @@ export type AdminPhotoRow = {
   reviewer: string | null;
 };
 
+export type AdminMissingPhotoRow = {
+  catalogCardId: string;
+  name: string;
+  setCode: string;
+  number: string;
+  game: string;
+  /** Collections that list it. */
+  collections: number;
+  /** Copies of it sitting in a location. */
+  copies: number;
+};
+
+/**
+ * Cards with no image at all that someone keeps in a location or lists in a collection (D30):
+ * the ones worth photographing next. `image_small` is null both when the source never had an
+ * image and when nobody has shared a photo, because sharing one writes the photo's URL there
+ * and deleting it sets it back to null (`saveCardPhoto`/`deleteCardPhoto`).
+ */
+export async function listCardsWithoutPhoto(limit = 200): Promise<AdminMissingPhotoRow[]> {
+  const { rows } = await pool.query<AdminMissingPhotoRow>(
+    `select c.id as "catalogCardId", c.name, c.set_code as "setCode",
+            c.collector_number as number, c.game,
+            (select count(*)::int from collection_cards cc where cc.catalog_card_id = c.id) as collections,
+            (select coalesce(sum(i.quantity), 0)::int from items i
+              where i.catalog_card_id = c.id and i.location_id is not null) as copies
+     from catalog_cards c
+     where c.image_small is null
+       and (exists (select 1 from collection_cards cc where cc.catalog_card_id = c.id)
+            or exists (select 1 from items i
+                        where i.catalog_card_id = c.id and i.location_id is not null))
+     order by c.name
+     limit $1`,
+    [limit],
+  );
+  return rows;
+}
+
 /** The shared photos (D30) for /admin: the ones waiting for review first, then the newest. */
 export async function listPhotosForReview(limit = 200): Promise<AdminPhotoRow[]> {
   const { rows } = await pool.query<AdminPhotoRow>(
