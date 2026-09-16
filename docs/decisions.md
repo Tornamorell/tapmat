@@ -785,6 +785,21 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
     sincronización, se cuenta aparte y se queda fuera, avisando de cuántas.
   - Las copias gradeadas cuentan como cualquier otra aquí, porque están físicamente en la caja;
     el análisis del mazo sigue sin contarlas (D27).
+- **Actualización (2026-09-16, el escáner mira la lista del mazo):** al escanear a la caja de un
+  mazo, su lista es una pista muy buena de qué carta se está leyendo, porque lo normal es pegar la
+  lista y después meter las cartas dentro.
+  - `locationOptions` dice ahora qué ubicación es la caja de un mazo (`decks_location_uq` lo hace
+    uno a uno, así que el join no duplica filas), el escáner manda ese `deckId` con cada búsqueda
+    —de número y de título— y `preferListed` (`src/lib/scan/prefer.ts`, puro y con tests) pone
+    delante las candidatas que la lista tiene.
+  - **Si solo una de las candidatas está en la lista, se añade sin preguntar.** Ahí está la
+    mejora: una lectura ambigua que antes paraba a preguntar, ahora se resuelve sola.
+  - `ScanMatch` lleva ahora `oracleId`, porque la lista de un mazo va por carta y no por edición.
+  - Las rutas comprueban que el mazo sea del usuario de la sesión (`deckOracleIds` filtra por
+    dueño), así que un `deckId` venido del navegador no puede leer el mazo de otro.
+  - **Descartado:** filtrar la búsqueda por la lista, en vez de ordenarla. Escanear una carta que
+    aún no está en el mazo es normal —se añade y luego se pone en la lista—, y filtrar la
+    escondería.
 
 ## D36 · Buscar la carta en toda la imagen del escáner — 2026-09-14 · provisional
 

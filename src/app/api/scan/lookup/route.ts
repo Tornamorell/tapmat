@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
-import { lookupScan } from "@/lib/queries/scan";
+import { deckOracleIds, lookupScan } from "@/lib/queries/scan";
+import { preferListed } from "@/lib/scan/prefer";
 
 const body = z.object({
   line: z.object({
@@ -11,6 +12,8 @@ const body = z.object({
     lang: z.string().max(3).nullable(),
   }),
   fixedSet: z.object({ game: z.enum(["mtg", "pokemon", "sports"]), code: z.string().max(20) }).nullish(),
+  /** Scanning into a deck's box: its list breaks the ties (D35). */
+  deckId: z.uuid().nullish(),
 });
 
 /** Validates a parsed OCR read against the catalog. Called a few times per second. */
@@ -22,5 +25,9 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: "Bad request" }, { status: 400 });
 
   const matches = await lookupScan(parsed.data.line, parsed.data.fixedSet);
-  return NextResponse.json({ matches });
+  const { deckId } = parsed.data;
+  const preferred = deckId
+    ? preferListed(matches, await deckOracleIds(session.user.id, deckId))
+    : matches;
+  return NextResponse.json({ matches: preferred });
 }

@@ -1,6 +1,6 @@
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db/client";
-import { catalogCards, items, locationSections, locations } from "@/db/schema";
+import { catalogCards, decks, items, locationSections, locations } from "@/db/schema";
 import { stackAggregates } from "./items";
 
 export type SectionOption = {
@@ -24,8 +24,16 @@ const sectionWithCount = {
 export async function locationOptions(ownerId: string) {
   const [rows, sections] = await Promise.all([
     db
-      .select({ id: locations.id, name: locations.name, autoAdvance: locations.autoAdvance })
+      // A deck's box is a location (D35), and `decks_location_uq` makes that one-to-one, so this
+      // join can't duplicate a row. The scanner uses it to know it's filling a deck.
+      .select({
+        id: locations.id,
+        name: locations.name,
+        autoAdvance: locations.autoAdvance,
+        deckId: decks.id,
+      })
       .from(locations)
+      .leftJoin(decks, eq(decks.locationId, locations.id))
       .where(eq(locations.ownerId, ownerId))
       .orderBy(asc(locations.name)),
     db

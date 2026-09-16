@@ -500,17 +500,29 @@ export function Scanner({
     return matches;
   }
 
+  /**
+   * The deck being filled, when the session's location is its box (D35). Its list then breaks
+   * the ties: scanning a deck that's already written down, nearly every card is on it.
+   */
+  function currentDeckId(): string | null {
+    const { defaults, locations } = settings.current;
+    return locations.find((l) => l.id === defaults.lastLocationId)?.deckId ?? null;
+  }
+
   function lookupLine(line: CollectorLine) {
     const { fixedSet } = settings.current;
-    return post("/api/scan/lookup", { line, fixedSet }, JSON.stringify(["line", line, fixedSet]));
+    const deckId = currentDeckId();
+    // The deck goes in the key too: changing where the session saves changes the answer.
+    return post("/api/scan/lookup", { line, fixedSet, deckId }, JSON.stringify(["line", line, fixedSet, deckId]));
   }
 
   function lookupName(name: string) {
     const { fixedSet } = settings.current;
+    const deckId = currentDeckId();
     return post(
       "/api/scan/name",
-      { name, fixedSet },
-      JSON.stringify(["name", normalizeForSearch(name), fixedSet]),
+      { name, fixedSet, deckId },
+      JSON.stringify(["name", normalizeForSearch(name), fixedSet, deckId]),
     );
   }
 

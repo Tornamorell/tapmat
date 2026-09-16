@@ -67,6 +67,12 @@ cámara trasera (getUserMedia, se piden 3840×2160; el móvil da lo que puede)
   momento, y se añadía dos veces. Si en ese caso se vuelve a leer, avisa «ya está añadida: si es
   otra copia, pulsa +». También si «Identificar con IA» da la carta que se acaba de añadir. Para
   otra copia está el **+**.
+- **Escaneando a la caja de un mazo** (D35): si la ubicación de la sesión es la caja de un mazo,
+  se manda su `deckId` con la búsqueda y las cartas que ya están en su lista se ponen delante
+  (`preferListed`, en `src/lib/scan/prefer.ts`, puro y con tests). Si de las candidatas solo una
+  está en la lista, se da por buena y se añade sola en lugar de preguntar: al escanear un mazo que
+  ya está escrito, casi todas las cartas están en él. El servidor comprueba que el mazo sea del
+  usuario de la sesión antes de mirarlo, y el `deckId` entra en la clave de la caché de lecturas.
 - **El idioma impreso** ("EN", "ES"…) manda sobre el idioma por defecto de la sesión.
 
 ## Pantalla (`/scan`)

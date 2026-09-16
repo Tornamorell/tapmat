@@ -19,6 +19,8 @@ export type LocationOption = {
   /** Dividers inside it, in order (D28); none for a location without them. */
   sections?: SectionOption[];
   autoAdvance?: boolean;
+  /** Set when this location is a deck's box (D35): the scanner then prefers that deck's list. */
+  deckId?: string | null;
 };
 
 /**

@@ -13,6 +13,8 @@ export type ScanMatch = {
   id: string;
   game: string;
   name: string;
+  /** The card behind this printing: what a deck's list is keyed by (D35). */
+  oracleId: string | null;
   setCode: string;
   setName: string;
   collectorNumber: string;
@@ -25,7 +27,7 @@ export type ScanMatch = {
 };
 
 const COLUMNS = `
-  c.id, c.game, c.name, c.set_code as "setCode", s.name as "setName",
+  c.id, c.game, c.name, c.oracle_id as "oracleId", c.set_code as "setCode", s.name as "setName",
   c.collector_number as "collectorNumber", c.image_small as "imageSmall", c.rarity, c.finishes,
   c.price_eur::float8 as "priceEur", c.price_eur_foil::float8 as "priceEurFoil",
   s.printed_total as "printedTotal"`;
@@ -264,6 +266,21 @@ export async function lookupReading(
     if (!byName.length) return byNumber;
   }
   return byName;
+}
+
+/**
+ * The cards a deck's list holds, to prefer them while scanning into its box (D35). Scoped to the
+ * owner, so a deck id from the browser can only ever read that user's own deck.
+ */
+export async function deckOracleIds(ownerId: string, deckId: string): Promise<Set<string>> {
+  const { rows } = await pool.query<{ oracleId: string }>(
+    `select dc.oracle_id as "oracleId"
+     from deck_cards dc
+     join decks d on d.id = dc.deck_id
+     where d.id = $1 and d.owner_id = $2`,
+    [deckId, ownerId],
+  );
+  return new Set(rows.map((r) => r.oracleId));
 }
 
 /** Cards by id: the one the scanner recognised by its photo (D33). */
