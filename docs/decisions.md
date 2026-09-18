@@ -156,7 +156,7 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
   en Neon gratis.
 - **Consecuencia:** una carta añadida hoy no tiene histórico anterior a hoy.
 
-## D12 · Foil *etched* sin precio — 2026-09-11 · provisional
+## D12 · Foil _etched_ sin precio — 2026-09-11 · provisional
 
 - **Decisión:** Scryfall no da `eur` para etched, así que cuentan como "sin precio" en vez de
   tomar el de foil.
@@ -266,7 +266,7 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
   - Borrar una ubicación deja sus cartas sin ubicación; no borra cartas.
   - Si la ubicación recordada ya no existe, `addItem` responde `location_not_found` y el
     cliente la olvida.
-- **Descartado:** que la caja *sea* la colección. Es más simple, pero impide agrupar las mismas
+- **Descartado:** que la caja _sea_ la colección. Es más simple, pero impide agrupar las mismas
   cartas de dos formas.
 - **Revisar cuando:** hagan falta ubicaciones anidadas (estantería → caja → separador) o una
   posición dentro de la caja (página de la carpeta, orden).
@@ -512,6 +512,7 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
 
     `npm run import:album -- <álbum>` los carga en el catálogo. Se puede repetir sin
     duplicar nada.
+
   - **Cómo se consigue la lista:** leyendo esa página en el navegador del usuario, con su
     sesión y a petición suya, una colección cada vez. Nunca recorriendo el sitio.
   - **Numeración única dentro del álbum:**
@@ -1023,6 +1024,7 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
 
     Estimado, sin medir en respuestas reales: una pregunta sobre el mazo pasa de ~0,05 $ a
     ~0,033 $, y una sobre tus cartas, a menos de la mitad.
+
   - **Descartado de momento:**
     - la caché de 1 hora, porque las preguntas llegan con más de una hora de diferencia;
     - la búsqueda de herramientas y los skills, que no compensan con 7 herramientas y 941
@@ -1036,7 +1038,7 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
   «collector» se había quedado corto: la app tiene también mazos, escáner, asistente y álbumes
   de cromos. El usuario pidió darle una vuelta al nombre y al logo, y lo quería en inglés.
 - **Decisión:**
-  - **Tapmat:** *tap*, girar una carta en Magic (y tocar la pantalla), y *mat*, el tapete. Corto,
+  - **Tapmat:** _tap_, girar una carta en Magic (y tocar la pantalla), y _mat_, el tapete. Corto,
     se dice igual en español y en inglés y no es un nombre genérico.
   - **Logo «Carta girada»:** una carta dorada girada sobre su zona del tapete, con el rombo de
     rareza de la app (docs/design.md). Dibuja las dos mitades del nombre.
@@ -1055,3 +1057,47 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
   - Los logos Abanico (el anterior: continuidad, pero un recurso muy visto) y Zona de juego
     (mejor para «Tapete»).
 - **Revisar cuando:** se abra la app a más gente y haga falta comprobar marcas o dominios.
+
+## D39 · Precisión del precio por copia: la variante sí, el estado no — 2026-09-18 · provisional
+
+- **Contexto:**
+  - El valor de una copia es `estimado ?? precio de mercado del acabado` (D27, `pricing.ts`). De
+    la copia solo cuenta el acabado: el estado, el idioma y la edición se guardan y se ignoran.
+  - Medido en producción el 2026-09-18, sobre 1 014 montones y 8 932 €:
+    - **Estado:** 1 001 NM, 12 MT y **una** EX.
+    - **Idioma:** 936 en, 59 es y 19 ja; unos 1 980 € (22 %) no ingleses, casi todo Pokémon en
+      español.
+    - **Gradeadas:** 26 montones y 2 896 € (**el 32 % del valor total**), y **ninguna** con valor
+      estimado: se valoran a precio raw aunque D27 ya lo resolvió.
+    - La carta más cara es un Charizard español, EX y gradeado, a 591,15 €, que es justo el precio
+      de la ilimitada inglesa en NM que cita D18. Está mal por cuatro lados a la vez.
+  - Lo que dan las fuentes: Scryfall, `eur` y `eur_foil` y nada más. TCGdex da de Cardmarket
+    `avg`, `low`, `trend` y `avg1/7/30`, siempre **por producto**; el desglose por variante solo
+    existe en TCGplayer y en dólares.
+- **Decisión:**
+  - **Campo `edition` en `items`** (ilimitada, 1ª edición, shadowless): se marca, se ve y se
+    filtra. Cierra el hueco de D18. **No cambia el precio:** no tenemos precio en euros por
+    variante, así que el valor de esas cartas sigue saliendo del estimado. Lo que se gana es que
+    dejen de ser indistinguibles de una ilimitada.
+  - **Procedencia del precio:** cada valor dice de dónde sale (tu estimación, el trend, sin
+    precio), en una función pura aparte, sin tocar la firma de `itemValueEur` ni sus gemelos SQL.
+    De ahí sale sola la lista de gradeadas sin estimar.
+  - **Banda `low`–`trend` en Pokémon:** se enseña («entre 410 € y 590 €»), y no entra en ningún
+    cálculo.
+  - **El estado no toca el precio.** Se sigue guardando y mostrando, como hasta ahora.
+  - **El idioma tampoco** (D07 sigue en pie): en Magic la fuente no da precio de las ediciones no
+    inglesas, y en Pokémon habría salida por `variants_detailed`, pero es trabajo aparte.
+- **Descartado — el multiplicador por estado.** Se llegó a proponer, y conviene dejar escrito por
+  qué no:
+  1. **No hay dato que calibrar.** `low` no es «el precio en EX»: es el listado más barato que
+     hay, de cualquier estado, idioma, vendedor y país de envío. Es un suelo contaminado.
+  2. **Una tabla global no puede acertar.** En una carta moderna el salto NM→EX es ruido; en una
+     vintage es brutal y además no es lineal. Se equivocaría en las dos direcciones, y más cuanto
+     más dinero hay en juego.
+  3. **El estado es autodeclarado** por el vendedor, no una magnitud medida. Para eso están PSA y
+     BGS.
+  4. **Afectaría a una carta de 1 014**, y está gradeada: en cuanto tenga valor estimado, el
+     multiplicador no tocaría nada. Sería un número inventado en el total a cambio de nada.
+- **Revisar cuando:** el usuario tenga muchas cartas que no sean NM, o aparezca una fuente con
+  precio por estado o por idioma. La API propia de Cardmarket sería la candidata, comprobando
+  antes si lo publica segmentado.

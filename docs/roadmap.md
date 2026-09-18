@@ -67,6 +67,8 @@ compartidas, 7 días de precios guardados y 12 días de valor del inventario.
 - **Admin:** revisión de fotos compartidas, lista de **cartas sin imagen** que alguien tiene en
   una ubicación o colección, y **«Añadir foto» desde la propia lista**.
 - **Mis cartas:** paginación con números, además de «Anterior» y «Siguiente».
+- **CI en cada push:** `typecheck`, `lint` y `test` en GitHub Actions, en `main` y en cada pull
+  request. Genera antes los tipos de ruta (`next typegen`), que no están en el repo.
 - **Escáner** (todo en `docs/scanner.md`): la franja se lee como texto disperso, la clave de
   votación ya no confunde cartas distintas, la franja de una carta encontrada va **debajo** de su
   marco, se aceptan códigos de expansión con una letra mal, se encuentran las reimpresiones de
@@ -85,12 +87,18 @@ Actions, `ANTHROPIC_API_KEY` en Vercel y `oracle_cards` sincronizado.
 
 ## Siguiente
 
-### 1. CI en cada push
+### 1. Precisión del precio (D39)
 
-No hay ningún workflow que ejecute `typecheck`, `lint` y `test`: los tres de `.github/workflows/`
-son sincronizaciones. El 2026-09-16 un import roto llegó a `main`, el despliegue falló y una
-función nueva estuvo horas sin existir en producción sin que saltara nada. Son unas veinte líneas
-y habría bastado.
+Medido el 2026-09-18: el 32 % del valor total son 26 cartas gradeadas valoradas a precio raw, y
+ninguna tiene valor estimado. Por orden:
+
+- **Procedencia del precio:** que cada valor diga de dónde sale (tu estimación, el trend, sin
+  precio). De ahí sale sola la lista de gradeadas sin estimar, que es lo que hay que rellenar.
+- **Campo `edition`** (ilimitada, 1ª edición, shadowless): marca y filtra; el precio sigue
+  saliendo del estimado, porque no hay precio en euros por variante. Cierra el hueco de D18.
+- **Banda `low`–`trend` en Pokémon:** solo para enseñarla. Ya descargamos el dato y lo tiramos.
+
+El multiplicador por estado se descartó, con sus cuatro motivos, en D39.
 
 ### 2. Fotos reales para el escáner
 
@@ -137,9 +145,8 @@ Estado y mediciones en `docs/scanner.md`. Lo que queda:
 
 ## Preguntas abiertas
 
-- **El precio no distingue idioma ni estado** (comprobado el 2026-09-18 en
-  `src/lib/collection/pricing.ts`): solo el acabado (normal o foil) y, si lo pones, tu valor
-  estimado. Una copia en español NM y una inglesa PO de la misma edición valen lo mismo.
-  - ¿Debe afectar el estado (NM, LP…)? Cardmarket publica precio por estado; hoy se ignora.
-  - ¿Y el idioma? En algunas cartas antiguas la diferencia es grande (D07).
+- **El precio no distingue idioma ni estado**, y se decidió que siga sin hacerlo: **D39** explica
+  qué sí se hace (variante, procedencia, banda) y por qué el multiplicador por estado se
+  descartó. Sigue abierto el precio por idioma en Pokémon, que tendría salida por
+  `variants_detailed`.
 - ¿Se agrupan en la navegación las expansiones hijas (tokens, promos) con su expansión padre?

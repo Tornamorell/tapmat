@@ -1,0 +1,31 @@
+name: Checks
+
+# The other workflows are syncs: until this one, nothing ran the checks. On 2026-09-16 a broken
+# import reached main and only the failed deploy said so (roadmap, "CI en cada push").
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # PageProps<"/route"> lives in .next/types, which isn't committed: without this, tsc fails
+      # on a clean checkout.
+      - name: Generate route types
+        run: npx next typegen
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
