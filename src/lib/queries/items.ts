@@ -127,7 +127,23 @@ export async function listItems(
     .limit(ITEMS_PAGE_SIZE + 1)
     .offset((page - 1) * ITEMS_PAGE_SIZE);
 
-  return { rows: rows.slice(0, ITEMS_PAGE_SIZE), hasMore: rows.length > ITEMS_PAGE_SIZE };
+  // The same joins and filters as above, so the count matches those rows one for one. The
+  // numbered pages need to know how many there are, which `hasMore` on its own can't say.
+  const [counted] = await db
+    .select({ total: sql<number>`count(*)::int` })
+    .from(items)
+    .leftJoin(locations, eq(locations.id, items.locationId))
+    .leftJoin(locationSections, eq(locationSections.id, items.sectionId))
+    .leftJoin(catalogCards, eq(catalogCards.id, items.catalogCardId))
+    .leftJoin(sets, and(eq(sets.game, catalogCards.game), eq(sets.code, catalogCards.setCode)))
+    .where(and(...itemFilters(scope, q)));
+
+  return {
+    rows: rows.slice(0, ITEMS_PAGE_SIZE),
+    hasMore: rows.length > ITEMS_PAGE_SIZE,
+    /** Stacks matching the filters, for the numbered pages. */
+    total: counted?.total ?? 0,
+  };
 }
 
 export type InventoryItem = Awaited<ReturnType<typeof listItems>>["rows"][number];

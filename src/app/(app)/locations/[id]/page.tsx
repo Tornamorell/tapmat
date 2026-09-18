@@ -12,7 +12,7 @@ import {
 } from "@/components/items-table";
 import { formatEur, formatInt } from "@/lib/format";
 import { collectionOptions } from "@/lib/queries/collections";
-import { listItems } from "@/lib/queries/items";
+import { ITEMS_PAGE_SIZE, listItems } from "@/lib/queries/items";
 import {
   getLocation,
   listSections,
@@ -63,7 +63,7 @@ export default async function LocationPage({ params, searchParams }: PageProps<"
     rawSection === "none" ? null : sections.some((s) => s.id === rawSection) ? rawSection : undefined;
   const sectionParam = sectionId === null ? "none" : sectionId;
 
-  const [{ rows, hasMore }, locations, collections] = await Promise.all([
+  const [{ rows, hasMore, total }, locations, collections] = await Promise.all([
     listItems(
       { ownerId: user.id, locationId: location.id, ...(sectionId !== undefined && { sectionId }) },
       { q, sort, page },
@@ -162,7 +162,12 @@ export default async function LocationPage({ params, searchParams }: PageProps<"
         </>
       )}
 
-      <Pagination page={page} hasMore={hasMore} href={href} />
+      <Pagination
+        page={page}
+        hasMore={hasMore}
+        href={href}
+        pageCount={Math.ceil(total / ITEMS_PAGE_SIZE)}
+      />
     </div>
   );
 }

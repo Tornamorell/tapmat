@@ -4,6 +4,7 @@ import { ItemsTableView } from "@/components/items-table-view";
 import type { LocationOption } from "@/components/location-picker";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { pageNumbers } from "@/lib/pagination";
 import { ITEM_SORTS, type InventoryItem, type ItemSort } from "@/lib/queries/items";
 import { cn } from "@/lib/utils";
 
@@ -69,26 +70,64 @@ export function ItemsToolbar({
   );
 }
 
-export function Pagination({ page, hasMore, href }: { page: number; hasMore: boolean; href: HrefFor }) {
+export function Pagination({
+  page,
+  hasMore,
+  href,
+  pageCount,
+}: {
+  page: number;
+  hasMore: boolean;
+  href: HrefFor;
+  /** How many pages there are, when the query counted them: then the numbers are shown too. */
+  pageCount?: number;
+}) {
   if (page <= 1 && !hasMore) return null;
+  // Page 1 is the bare URL, so going back to it doesn't leave ?page=1 behind.
+  const to = (p: number) => href({ page: p === 1 ? undefined : p });
+  const numbers = pageCount && pageCount > 1 ? pageNumbers(page, pageCount) : [];
+
   return (
-    <div className="flex justify-between">
+    <nav className="flex flex-wrap items-center justify-between gap-2" aria-label="Paginación">
       {page > 1 ? (
-        <Link
-          href={href({ page: page - 1 === 1 ? undefined : page - 1 })}
-          className={buttonVariants({ variant: "outline" })}
-        >
+        <Link href={to(page - 1)} className={buttonVariants({ variant: "outline" })}>
           ← Anterior
         </Link>
       ) : (
         <span />
       )}
-      {hasMore && (
-        <Link href={href({ page: page + 1 })} className={buttonVariants({ variant: "outline" })}>
+
+      {numbers.length > 0 && (
+        <ol className="flex flex-wrap items-center gap-1">
+          {numbers.map((n, i) =>
+            n === null ? (
+              <li key={`gap-${i}`} className="text-muted-foreground px-1" aria-hidden>
+                …
+              </li>
+            ) : (
+              <li key={n}>
+                <Link
+                  href={to(n)}
+                  aria-current={n === page ? "page" : undefined}
+                  aria-label={`Página ${n}`}
+                  className={buttonVariants({ variant: n === page ? "default" : "ghost", size: "sm" })}
+                >
+                  {n}
+                </Link>
+              </li>
+            ),
+          )}
+        </ol>
+      )}
+
+      {hasMore ? (
+        <Link href={to(page + 1)} className={buttonVariants({ variant: "outline" })}>
           Siguiente →
         </Link>
+      ) : (
+        <span />
       )}
-    </div>
+    </nav>
   );
 }
 

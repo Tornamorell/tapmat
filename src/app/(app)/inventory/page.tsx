@@ -12,7 +12,7 @@ import {
 import { QuickAdd } from "@/components/quick-add";
 import { formatEur, formatInt } from "@/lib/format";
 import { collectionOptions } from "@/lib/queries/collections";
-import { inventorySummary, listItems } from "@/lib/queries/items";
+import { ITEMS_PAGE_SIZE, inventorySummary, listItems } from "@/lib/queries/items";
 import { listLocations, locationOptions, unlocatedSummary } from "@/lib/queries/locations";
 import { pendingScanCount } from "@/lib/queries/pending-scans";
 import { requireUser } from "@/lib/session";
@@ -30,7 +30,7 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
   const locationId =
     loc === "none" ? null : loc && z.uuid().safeParse(loc).success ? loc : undefined;
 
-  const [summary, { rows, hasMore }, locations, byLocation, unlocated, collections, pending] =
+  const [summary, { rows, hasMore, total }, locations, byLocation, unlocated, collections, pending] =
     await Promise.all([
       inventorySummary(user.id),
       listItems({ ownerId: user.id, locationId }, { q, sort, page }),
@@ -119,7 +119,12 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
         </>
       )}
 
-      <Pagination page={page} hasMore={hasMore} href={href} />
+      <Pagination
+        page={page}
+        hasMore={hasMore}
+        href={href}
+        pageCount={Math.ceil(total / ITEMS_PAGE_SIZE)}
+      />
     </div>
   );
 }
