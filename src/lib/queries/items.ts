@@ -1,4 +1,16 @@
-import { and, asc, desc, eq, exists, isNull, like, or, sql, type SQL } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  exists,
+  isNotNull,
+  isNull,
+  like,
+  or,
+  sql,
+  type SQL,
+} from "drizzle-orm";
 import { db } from "@/db/client";
 import { cardNames, catalogCards, items, locationSections, locations, sets } from "@/db/schema";
 import { itemValueEurSql, unitPriceEurSql } from "@/lib/collection/pricing";
@@ -21,6 +33,19 @@ export async function inventorySummary(ownerId: string) {
   return row;
 }
 
+/**
+ * Graded copies still valued at the loose card's price (D39): how many and what they're counting
+ * for today. Zero means there's nothing to review.
+ */
+export async function needsEstimateSummary(ownerId: string) {
+  const [row] = await db
+    .select(stackAggregates)
+    .from(items)
+    .leftJoin(catalogCards, eq(catalogCards.id, items.catalogCardId))
+    .where(and(...itemFilters({ ownerId, needsEstimate: true })));
+  return row;
+}
+
 export const ITEM_SORTS = {
   value: "Valor",
   name: "Nombre",
@@ -37,6 +62,8 @@ export interface ItemScope {
   locationId?: string | null;
   /** A divider id, `null` for copies outside any divider, or undefined for any. */
   sectionId?: string | null;
+  /** Only graded copies with no estimate, valued at the loose card's price (D39). */
+  needsEstimate?: boolean;
 }
 
 /**
@@ -46,10 +73,16 @@ export interface ItemScope {
 export function itemFilters(scope: ItemScope, q?: string): SQL[] {
   const filters: SQL[] = [eq(items.ownerId, scope.ownerId)];
   if (scope.locationId !== undefined) {
-    filters.push(scope.locationId ? eq(items.locationId, scope.locationId) : isNull(items.locationId));
+    filters.push(
+      scope.locationId ? eq(items.locationId, scope.locationId) : isNull(items.locationId),
+    );
   }
   if (scope.sectionId !== undefined) {
     filters.push(scope.sectionId ? eq(items.sectionId, scope.sectionId) : isNull(items.sectionId));
+  }
+  // The TS twin of this is priceSource() === "graded-raw" (pricing.ts). Keep them together.
+  if (scope.needsEstimate) {
+    filters.push(isNotNull(items.gradingCompany), isNull(items.estimatedValueEur));
   }
   const needle = q ? normalizeForSearch(q) : "";
   if (needle) {
@@ -62,7 +95,10 @@ export function itemFilters(scope: ItemScope, q?: string): SQL[] {
             .select({ one: sql`1` })
             .from(cardNames)
             .where(
-              and(eq(cardNames.catalogCardId, catalogCards.id), like(cardNames.searchName, pattern)),
+              and(
+                eq(cardNames.catalogCardId, catalogCards.id),
+                like(cardNames.searchName, pattern),
+              ),
             ),
         ),
       )!,
@@ -80,7 +116,11 @@ export async function listItems(
     value: [sql`${itemValueEurSql} * ${items.quantity} desc nulls last`, asc(catalogCards.name)],
     name: [asc(catalogCards.name), asc(catalogCards.setCode)],
     recent: [desc(items.createdAt)],
-    set: [desc(catalogCards.releasedAt), asc(catalogCards.setCode), asc(catalogCards.collectorNumber)],
+    set: [
+      desc(catalogCards.releasedAt),
+      asc(catalogCards.setCode),
+      asc(catalogCards.collectorNumber),
+    ],
   }[sort];
 
   const rows = await db

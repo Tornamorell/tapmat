@@ -12,7 +12,12 @@ import {
 import { QuickAdd } from "@/components/quick-add";
 import { formatEur, formatInt } from "@/lib/format";
 import { collectionOptions } from "@/lib/queries/collections";
-import { ITEMS_PAGE_SIZE, inventorySummary, listItems } from "@/lib/queries/items";
+import {
+  ITEMS_PAGE_SIZE,
+  inventorySummary,
+  listItems,
+  needsEstimateSummary,
+} from "@/lib/queries/items";
 import { listLocations, locationOptions, unlocatedSummary } from "@/lib/queries/locations";
 import { pendingScanCount } from "@/lib/queries/pending-scans";
 import { requireUser } from "@/lib/session";
@@ -29,21 +34,38 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
   const loc = typeof sp.loc === "string" ? sp.loc : undefined;
   const locationId =
     loc === "none" ? null : loc && z.uuid().safeParse(loc).success ? loc : undefined;
+  // ?estimar=1: only the graded copies still valued at the loose card's price (D39).
+  const needsEstimate = sp.estimar === "1";
 
-  const [summary, { rows, hasMore, total }, locations, byLocation, unlocated, collections, pending] =
-    await Promise.all([
-      inventorySummary(user.id),
-      listItems({ ownerId: user.id, locationId }, { q, sort, page }),
-      locationOptions(user.id),
-      listLocations(user.id),
-      unlocatedSummary(user.id),
-      collectionOptions(user.id),
-      pendingScanCount(user.id),
-    ]);
+  const [
+    summary,
+    { rows, hasMore, total },
+    locations,
+    byLocation,
+    unlocated,
+    collections,
+    pending,
+    toEstimate,
+  ] = await Promise.all([
+    inventorySummary(user.id),
+    listItems({ ownerId: user.id, locationId, needsEstimate }, { q, sort, page }),
+    locationOptions(user.id),
+    listLocations(user.id),
+    unlocatedSummary(user.id),
+    collectionOptions(user.id),
+    pendingScanCount(user.id),
+    needsEstimateSummary(user.id),
+  ]);
 
   const locParam = locationId === null ? "none" : (locationId ?? undefined);
-  const href = hrefBuilder({ q, sort: sort === "value" ? undefined : sort, loc: locParam });
-  const filtered = !!q || locationId !== undefined;
+  const estimarParam = needsEstimate ? "1" : undefined;
+  const href = hrefBuilder({
+    q,
+    sort: sort === "value" ? undefined : sort,
+    loc: locParam,
+    estimar: estimarParam,
+  });
+  const filtered = !!q || locationId !== undefined || needsEstimate;
 
   return (
     <div className="space-y-6">
@@ -73,7 +95,10 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
 
       {byLocation.length > 0 && (
         <nav className="flex flex-wrap gap-1 text-sm" aria-label="Ubicación">
-          <FilterLink href={href({ loc: undefined, page: undefined })} active={locationId === undefined}>
+          <FilterLink
+            href={href({ loc: undefined, page: undefined })}
+            active={locationId === undefined}
+          >
             Todas
           </FilterLink>
           {byLocation.map((l) => (
@@ -93,11 +118,30 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
         </nav>
       )}
 
+      {/* Slabs counted at the loose card's price: the biggest error in the total (D39). */}
+      {toEstimate.cardCount > 0 && (
+        <p className="text-sm">
+          <FilterLink
+            href={href({ estimar: needsEstimate ? undefined : "1", page: undefined })}
+            active={needsEstimate}
+          >
+            {needsEstimate ? (
+              "← Todas tus cartas"
+            ) : (
+              <>
+                Gradeadas sin valor estimado <Count>{formatInt(toEstimate.cardCount)}</Count>{" "}
+                <Count>{formatEur(toEstimate.valueEur)}</Count>
+              </>
+            )}
+          </FilterLink>
+        </p>
+      )}
+
       <ItemsToolbar
         q={q}
         sort={sort}
         href={href}
-        hidden={{ sort: sort === "value" ? undefined : sort, loc: locParam }}
+        hidden={{ sort: sort === "value" ? undefined : sort, loc: locParam, estimar: estimarParam }}
       />
 
       {!rows.length ? (
@@ -108,14 +152,25 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
         </p>
       ) : (
         <>
-          <div className="flex justify-end">
-            <AddFilteredToCollection
-              collections={collections}
-              filter={{ ...(locationId !== undefined && { locationId }), ...(q && { q }) }}
-              label={filtered ? "Añadir estas cartas a una colección" : "Añadir todo a una colección"}
-            />
-          </div>
-          <ItemsTable rows={rows} context="inventory" locations={locations} collections={collections} />
+          {/* The estimate filter isn't part of the collection filter, so while it's on this
+              button would add a different set than the one listed. */}
+          {!needsEstimate && (
+            <div className="flex justify-end">
+              <AddFilteredToCollection
+                collections={collections}
+                filter={{ ...(locationId !== undefined && { locationId }), ...(q && { q }) }}
+                label={
+                  filtered ? "Añadir estas cartas a una colección" : "Añadir todo a una colección"
+                }
+              />
+            </div>
+          )}
+          <ItemsTable
+            rows={rows}
+            context="inventory"
+            locations={locations}
+            collections={collections}
+          />
         </>
       )}
 

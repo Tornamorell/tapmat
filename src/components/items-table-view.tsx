@@ -21,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { priceSource } from "@/lib/collection/pricing";
 import { formatEur, formatInt, placeLabel } from "@/lib/format";
 import { finishLabel } from "@/lib/games";
 import { gradeLabel } from "@/lib/grading";
@@ -99,7 +100,12 @@ export function ItemsTableView({
             {checkbox(item, "mt-1 shrink-0")}
             {item.card?.id && (
               <Link href={`/cards/${item.card.id}`} className="shrink-0" tabIndex={-1} aria-hidden>
-                <CardThumb src={item.card.imageSmall} alt="" size="sm" foil={item.finish !== "nonfoil"} />
+                <CardThumb
+                  src={item.card.imageSmall}
+                  alt=""
+                  size="sm"
+                  foil={item.finish !== "nonfoil"}
+                />
               </Link>
             )}
             <div className="min-w-0 flex-1 space-y-2">
@@ -249,10 +255,20 @@ export function ItemsTableView({
         />
       )}
       {bulk === "edit" && (
-        <BulkEditDialog itemIds={chosen.map((r) => r.id)} copies={copies} onClose={() => setBulk(null)} onDone={clear} />
+        <BulkEditDialog
+          itemIds={chosen.map((r) => r.id)}
+          copies={copies}
+          onClose={() => setBulk(null)}
+          onDone={clear}
+        />
       )}
       {bulk === "delete" && (
-        <BulkDeleteDialog itemIds={chosen.map((r) => r.id)} copies={copies} onClose={() => setBulk(null)} onDone={clear} />
+        <BulkDeleteDialog
+          itemIds={chosen.map((r) => r.id)}
+          copies={copies}
+          onClose={() => setBulk(null)}
+          onDone={clear}
+        />
       )}
     </>
   );
@@ -265,19 +281,23 @@ const total = (item: InventoryItem) =>
  * Under the price: "estimado" when it's the user's own value, and for graded copies the raw
  * price (Cardmarket's, ungraded) to compare against (D27).
  */
+/** Where the price comes from (D39). Nothing is shown for plain market data — that's the norm. */
 function PriceNote({ item }: { item: InventoryItem }) {
+  const source = priceSource(item);
   const raw =
     item.gradingCompany && item.marketPriceEur != null ? (
-      <span title="Precio de Cardmarket de la carta sin gradear">raw {formatEur(item.marketPriceEur)}</span>
+      <span title="Precio de Cardmarket de la carta sin gradear">
+        raw {formatEur(item.marketPriceEur)}
+      </span>
     ) : null;
-  if (item.estimatedValueEur != null) {
+  if (source === "estimate") {
     return (
       <span className="text-muted-foreground block text-[11px]">
         estimado{raw && <> · {raw}</>}
       </span>
     );
   }
-  if (item.gradingCompany) {
+  if (source === "graded-raw") {
     return (
       <span
         className="text-muted-foreground block text-[11px]"

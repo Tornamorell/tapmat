@@ -17,6 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { priceSource } from "@/lib/collection/pricing";
 import { formatEur } from "@/lib/format";
 import { finishLabel, gameById, rarityLabel } from "@/lib/games";
 import { gradeLabel } from "@/lib/grading";
@@ -51,15 +52,17 @@ export default async function CardPage({ params }: PageProps<"/cards/[id]">) {
   const printing = await load(id);
   const oracleId = printing.oracleId;
 
-  const [printings, spanishName, owned, collections, locations, lists, history] = await Promise.all([
-    oracleId ? getPrintingsOf(oracleId) : Promise.resolve([printing]),
-    oracleId ? getSpanishName(oracleId) : Promise.resolve(null),
-    oracleId ? getOwnedStacks(user.id, oracleId) : Promise.resolve([]),
-    collectionOptions(user.id),
-    locationOptions(user.id),
-    collectionsOfCard(user.id, printing.id),
-    priceHistory(printing.id),
-  ]);
+  const [printings, spanishName, owned, collections, locations, lists, history] = await Promise.all(
+    [
+      oracleId ? getPrintingsOf(oracleId) : Promise.resolve([printing]),
+      oracleId ? getSpanishName(oracleId) : Promise.resolve(null),
+      oracleId ? getOwnedStacks(user.id, oracleId) : Promise.resolve([]),
+      collectionOptions(user.id),
+      locationOptions(user.id),
+      collectionsOfCard(user.id, printing.id),
+      priceHistory(printing.id),
+    ],
+  );
   const historySeries = [
     {
       key: "nonfoil",
@@ -111,7 +114,9 @@ export default async function CardPage({ params }: PageProps<"/cards/[id]">) {
                 canDelete={isAdmin(user)}
               />
               <span className="text-muted-foreground text-xs">
-                {printing.imageNormal ? "Foto de un coleccionista" : "Sin imagen: la tuya la verán todos"}
+                {printing.imageNormal
+                  ? "Foto de un coleccionista"
+                  : "Sin imagen: la tuya la verán todos"}
               </span>
             </div>
           )}
@@ -125,7 +130,10 @@ export default async function CardPage({ params }: PageProps<"/cards/[id]">) {
             <p className="text-muted-foreground flex flex-wrap items-center gap-1.5 text-sm">
               <SetIcon src={printing.setIcon} alt="" />
               {setHref ? (
-                <Link href={setHref} className="hover:text-foreground underline-offset-2 hover:underline">
+                <Link
+                  href={setHref}
+                  className="hover:text-foreground underline-offset-2 hover:underline"
+                >
                   {setName}
                 </Link>
               ) : (
@@ -190,14 +198,19 @@ export default async function CardPage({ params }: PageProps<"/cards/[id]">) {
                     className="bg-card flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg border px-3 py-2"
                   >
                     <div className="min-w-0 flex-1">
-                      {s.setCode.toUpperCase()} #{s.collectorNumber}, {finishLabel(printing.game, s.finish)}{" "}
-                      <ConditionBadge condition={s.condition} /> <LanguageFlag code={s.language} withName />
+                      {s.setCode.toUpperCase()} #{s.collectorNumber},{" "}
+                      {finishLabel(printing.game, s.finish)}{" "}
+                      <ConditionBadge condition={s.condition} />{" "}
+                      <LanguageFlag code={s.language} withName />
                       {s.gradingCompany && (
                         <>
                           , <strong>{gradeLabel(s.gradingCompany, s.grade)}</strong>
                           {s.certNumber && ` (certificado ${s.certNumber})`}
                           {s.marketPriceEur != null && (
-                            <span className="text-muted-foreground" title="Precio de Cardmarket sin gradear">
+                            <span
+                              className="text-muted-foreground"
+                              title="Precio de Cardmarket sin gradear"
+                            >
                               , raw {formatEur(s.marketPriceEur)}
                             </span>
                           )}
@@ -206,8 +219,22 @@ export default async function CardPage({ params }: PageProps<"/cards/[id]">) {
                       {s.estimatedValueEur != null && (
                         <>
                           , valor estimado{" "}
-                          <span className="text-primary font-medium">{formatEur(s.estimatedValueEur)}</span>
+                          <span className="text-primary font-medium">
+                            {formatEur(s.estimatedValueEur)}
+                          </span>
                         </>
+                      )}
+                      {priceSource({
+                        estimatedValueEur: s.estimatedValueEur,
+                        gradingCompany: s.gradingCompany,
+                        unitPriceEur: s.marketPriceEur,
+                      }) === "graded-raw" && (
+                        <span
+                          className="text-muted-foreground"
+                          title="Se está valorando como carta suelta: pon un valor estimado en «Editar»"
+                        >
+                          , <strong>sin valor estimado</strong>
+                        </span>
                       )}
                       {s.locationId && (
                         <>
@@ -220,7 +247,11 @@ export default async function CardPage({ params }: PageProps<"/cards/[id]">) {
                     </div>
                     <div className="flex items-center gap-1">
                       <QuantityControl itemId={s.id} quantity={s.quantity} />
-                      <ItemActions item={actionItem(s)} locations={locations} collections={collections} />
+                      <ItemActions
+                        item={actionItem(s)}
+                        locations={locations}
+                        collections={collections}
+                      />
                     </div>
                   </li>
                 ))}
@@ -238,7 +269,12 @@ export default async function CardPage({ params }: PageProps<"/cards/[id]">) {
                     <Link href={`/collections/${l.id}`} className="font-medium hover:underline">
                       {l.name}
                     </Link>
-                    <EntryControls collectionId={l.id} catalogCardId={printing.id} wanted={l.wanted} name={printing.name} />
+                    <EntryControls
+                      collectionId={l.id}
+                      catalogCardId={printing.id}
+                      wanted={l.wanted}
+                      name={printing.name}
+                    />
                   </li>
                 ))}
               </ul>
@@ -271,7 +307,9 @@ export default async function CardPage({ params }: PageProps<"/cards/[id]">) {
                   <TableHead>Edición</TableHead>
                   <TableHead>Nº</TableHead>
                   <TableHead>Fecha</TableHead>
-                  <TableHead className="text-right">{finishLabel(printing.game, "nonfoil")}</TableHead>
+                  <TableHead className="text-right">
+                    {finishLabel(printing.game, "nonfoil")}
+                  </TableHead>
                   <TableHead className="text-right">{finishLabel(printing.game, "foil")}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -279,15 +317,24 @@ export default async function CardPage({ params }: PageProps<"/cards/[id]">) {
                 {printings.map((p) => (
                   <TableRow key={p.id} className={cn(p.id === printing.id && "bg-primary/8")}>
                     <TableCell>
-                      <Link href={`/cards/${p.id}`} className="flex items-center gap-1.5 hover:underline">
+                      <Link
+                        href={`/cards/${p.id}`}
+                        className="flex items-center gap-1.5 hover:underline"
+                      >
                         <SetIcon src={p.setIcon} alt="" />
                         {p.setName ?? p.setCode.toUpperCase()}
                       </Link>
                     </TableCell>
                     <TableCell className="tabular-nums">{p.collectorNumber}</TableCell>
-                    <TableCell className="text-muted-foreground tabular-nums">{p.releasedAt?.slice(0, 4)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatEur(p.priceEur)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatEur(p.priceEurFoil)}</TableCell>
+                    <TableCell className="text-muted-foreground tabular-nums">
+                      {p.releasedAt?.slice(0, 4)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatEur(p.priceEur)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatEur(p.priceEurFoil)}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

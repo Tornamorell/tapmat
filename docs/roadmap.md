@@ -3,7 +3,7 @@
 Estado del proyecto y lo que viene. **Es orientativo:** el orden y el alcance cambian según lo
 que se vaya necesitando (ver `docs/decisions.md`). Actualízalo al terminar o replantear algo.
 
-Última actualización: 2026-09-18.
+Última actualización: 2026-09-21.
 
 ## Dónde está el proyecto
 
@@ -69,6 +69,9 @@ compartidas, 7 días de precios guardados y 12 días de valor del inventario.
 - **Mis cartas:** paginación con números, además de «Anterior» y «Siguiente».
 - **CI en cada push:** `typecheck`, `lint` y `test` en GitHub Actions, en `main` y en cada pull
   request. Genera antes los tipos de ruta (`next typegen`), que no están en el repo.
+- **De dónde sale cada precio** (D39): la ficha y las tablas distinguen tu valor estimado del
+  precio de mercado, y marcan las gradeadas que se están valorando como carta suelta. En Mis
+  cartas hay un filtro «Gradeadas sin valor estimado» con las que quedan por rellenar.
 - **Escáner** (todo en `docs/scanner.md`): la franja se lee como texto disperso, la clave de
   votación ya no confunde cartas distintas, la franja de una carta encontrada va **debajo** de su
   marco, se aceptan códigos de expansión con una letra mal, se encuentran las reimpresiones de
@@ -89,11 +92,9 @@ Actions, `ANTHROPIC_API_KEY` en Vercel y `oracle_cards` sincronizado.
 
 ### 1. Precisión del precio (D39)
 
-Medido el 2026-09-18: el 32 % del valor total son 26 cartas gradeadas valoradas a precio raw, y
-ninguna tiene valor estimado. Por orden:
+La procedencia del precio ya está, y con ella el filtro que saca las 26 gradeadas sin estimar
+(un tercio del valor total). Rellenarlas es cosa del usuario. Queda:
 
-- **Procedencia del precio:** que cada valor diga de dónde sale (tu estimación, el trend, sin
-  precio). De ahí sale sola la lista de gradeadas sin estimar, que es lo que hay que rellenar.
 - **Campo `edition`** (ilimitada, 1ª edición, shadowless): marca y filtra; el precio sigue
   saliendo del estimado, porque no hay precio en euros por variante. Cierra el hueco de D18.
 - **Banda `low`–`trend` en Pokémon:** solo para enseñarla. Ya descargamos el dato y lo tiramos.

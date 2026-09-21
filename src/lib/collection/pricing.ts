@@ -52,7 +52,27 @@ export function itemValueEur(
 }
 
 /** SQL twin of itemValueEur(): the per-copy value every total uses. */
-export const itemValueEurSql: SQL<number | null> = sql`coalesce(${items.estimatedValueEur}, ${unitPriceEurSql})`;
+export const itemValueEurSql: SQL<number | null> =
+  sql`coalesce(${items.estimatedValueEur}, ${unitPriceEurSql})`;
+
+/** Where a copy's value comes from, so the UI can say it instead of implying it's all market data. */
+export type PriceSource = "estimate" | "graded-raw" | "market" | "none";
+
+/**
+ * Which rule in itemValueEur() actually produced the value (D39). "graded-raw" is the one worth
+ * noticing: a slab priced as the loose card, which is almost never what it's worth — it needs an
+ * estimate (D27). Pass `unitPriceEur` as the value shown; the market price works too, because
+ * when there's an estimate the first branch wins anyway.
+ */
+export function priceSource(copy: {
+  estimatedValueEur?: number | null;
+  gradingCompany?: string | null;
+  unitPriceEur?: number | null;
+}): PriceSource {
+  if (copy.estimatedValueEur != null) return "estimate";
+  if (copy.unitPriceEur == null) return "none";
+  return copy.gradingCompany ? "graded-raw" : "market";
+}
 
 export interface StackValue {
   valueEur: number;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { itemValueEur, sumValue, unitPriceEur } from "./pricing";
+import { itemValueEur, priceSource, sumValue, unitPriceEur } from "./pricing";
 
 const card = { priceEur: 2.06, priceEurFoil: 12.5 };
 
@@ -48,5 +48,35 @@ describe("sumValue", () => {
 
   it("is zero for an empty collection", () => {
     expect(sumValue([])).toEqual({ valueEur: 0, cardCount: 0, unpricedCount: 0 });
+  });
+});
+
+describe("priceSource", () => {
+  it("says so when the value is your own estimate", () => {
+    expect(priceSource({ estimatedValueEur: 450, unitPriceEur: 450 })).toBe("estimate");
+    // An estimate wins even on a slab: that's the case we want people to reach.
+    expect(priceSource({ estimatedValueEur: 450, gradingCompany: "PSA", unitPriceEur: 450 })).toBe(
+      "estimate",
+    );
+  });
+
+  it("flags a slab still valued at the loose card's price", () => {
+    expect(priceSource({ gradingCompany: "PSA", unitPriceEur: 591.15 })).toBe("graded-raw");
+    expect(priceSource({ estimatedValueEur: null, gradingCompany: "BGS", unitPriceEur: 10 })).toBe(
+      "graded-raw",
+    );
+  });
+
+  it("is plain market data for an ungraded copy", () => {
+    expect(priceSource({ unitPriceEur: 2.06 })).toBe("market");
+    expect(priceSource({ estimatedValueEur: null, gradingCompany: null, unitPriceEur: 2.06 })).toBe(
+      "market",
+    );
+  });
+
+  it("has no source without a price, graded or not", () => {
+    expect(priceSource({ unitPriceEur: null })).toBe("none");
+    expect(priceSource({ gradingCompany: "PSA", unitPriceEur: null })).toBe("none");
+    expect(priceSource({})).toBe("none");
   });
 });
