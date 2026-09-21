@@ -84,6 +84,10 @@ compartidas, 7 días de precios guardados y 12 días de valor del inventario.
   Vercel, el secreto de GitHub Actions y `.env.neon.local`.
 - Mandar fotos de otras series de Megacracks (Élite, Special One, Vértigo, Zona VIP…) para medir
   cuántas acierta la IA (D31).
+- **Lanzar una vez el sync completo de Pokémon** («Run workflow» con _full_ marcado), ya con el
+  workflow arreglado el 2026-09-21. El catálogo se quedó parado el 2026-09-11 y le faltan las
+  expansiones posteriores, entre ellas las dos del 30 aniversario (`30th` y `30th-c`). Tarda unos
+  20 minutos. Si no, entran solas el primer miércoles tras subir el arreglo.
 
 Ya resuelto: dominio (`tapmat.marc.beer`), cuentas en producción, `DATABASE_URL` en GitHub
 Actions, `ANTHROPIC_API_KEY` en Vercel y `oracle_cards` sincronizado.

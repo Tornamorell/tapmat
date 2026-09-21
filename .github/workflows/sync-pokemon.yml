@@ -28,7 +28,18 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      # Decide the mode in the shell, not in the expression. `cond && '' || '--owned-only'` looks
+      # like a ternary but isn't: GitHub's && and || return the operand, and '' is falsy, so the
+      # true branch fell through to --owned-only. The full sync never ran from CI between the
+      # first commit and 2026-09-21 — every Wednesday run finished in five seconds and reported
+      # success, and no Pokémon set released after 2026-09-11 ever reached the catalog.
       - name: Sync
-        run: npm run sync:pokemon -- ${{ (github.event.schedule == '0 12 * * 3' || inputs.full) && '' || '--owned-only' }}
         env:
+          FULL: ${{ github.event.schedule == '0 12 * * 3' || inputs.full }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ "$FULL" = "true" ]; then
+            npm run sync:pokemon
+          else
+            npm run sync:pokemon -- --owned-only
+          fi
