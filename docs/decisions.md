@@ -356,6 +356,23 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
   - al crearla en `/collections`;
   - con «Guardar como colección…» en la página de la expansión, para una nueva o para una que
     ya existe.
+- **Actualización (2026-09-23) · la lista de «Wants»:** el usuario pidió una lista de cartas que
+  quiere «que no necesariamente formen parte de una colección».
+  - **Un want es una edición concreta**, no «la carta, la que sea». Se preguntó expresamente, y
+    esto descarta que haga falta lo de «cualquier edición» para esto: `collection_cards` ya lo
+    modela tal cual.
+  - `collections.kind` (`collection` | `wants`, migración `0025`): la misma tabla y las mismas
+    entradas, presentadas aparte. Pestaña «Wants» en `ListsSwitcher`, junto a Colecciones y
+    Mazos, y `/wants` entrega a la página de la lista en cuanto existe, para no duplicar los
+    filtros, la ordenación ni los adders.
+  - **Fuera de los selectores** (`collectionOptions`): al dar de alta o escanear no aparece, que
+    es el ruido que se quería evitar.
+  - **«Lo quiero»** en la ficha de cualquier carta, de un toque y sin elegir lista: la crea la
+    primera vez. Una por usuario.
+  - **Al conseguir la carta se queda en la lista**, marcada como que la tienes, en vez de
+    desaparecer: borrarla sola perdería el registro de que la querías, y el escáner podría
+    vaciarte la lista sin que te enteres.
+  - No cambia el «Revisar cuando» de arriba: las entradas siguen siendo por edición.
 
   Con los álbumes de fútbol servirá igual.
 

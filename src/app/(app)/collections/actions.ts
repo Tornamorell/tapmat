@@ -36,7 +36,11 @@ const collectionFields = z.object({
  * Creates a collection, unless one with the same name was created seconds ago: that's a double
  * tap or a retried request, not a second list, so it returns the first one.
  */
-async function insertCollection(ownerId: string, fields: z.output<typeof collectionFields>) {
+async function insertCollection(
+  ownerId: string,
+  fields: z.output<typeof collectionFields>,
+  kind: "collection" | "wants" = "collection",
+) {
   const [recent] = await db
     .select({ id: collections.id, name: collections.name })
     .from(collections)
@@ -51,10 +55,29 @@ async function insertCollection(ownerId: string, fields: z.output<typeof collect
   if (recent) return recent;
   const [created] = await db
     .insert(collections)
-    .values({ ...fields, ownerId })
+    .values({ ...fields, ownerId, kind })
     .returning({ id: collections.id, name: collections.name });
   refresh();
   return created;
+}
+
+/**
+ * The wants list, made the first time a card goes on it: one per user, so «Lo quiero» never asks
+ * which list. Kept out of the pickers by its kind (collectionOptions).
+ */
+export async function wantsList() {
+  const user = await requireUser();
+  const [existing] = await db
+    .select({ id: collections.id, name: collections.name })
+    .from(collections)
+    .where(and(eq(collections.ownerId, user.id), eq(collections.kind, "wants")))
+    .limit(1);
+  if (existing) return existing;
+  return insertCollection(
+    user.id,
+    collectionFields.parse({ name: "Wants", description: "" }),
+    "wants",
+  );
 }
 
 const setScope = z.object({
@@ -100,7 +123,10 @@ export async function createCollection(formData: FormData) {
   const ids =
     typeof set === "string" && set.includes(":")
       ? await setPrintingIds(
-          setScope.parse({ game: set.slice(0, set.indexOf(":")), setCode: set.slice(set.indexOf(":") + 1) }),
+          setScope.parse({
+            game: set.slice(0, set.indexOf(":")),
+            setCode: set.slice(set.indexOf(":") + 1),
+          }),
         )
       : [];
   const created = await insertCollection(user.id, fields);
@@ -112,7 +138,10 @@ export async function createCollection(formData: FormData) {
 export async function createCollectionFromSet(input: z.input<typeof setScope> & { name: string }) {
   const user = await requireUser();
   const ids = await setPrintingIds(setScope.parse(input));
-  const created = await insertCollection(user.id, collectionFields.parse({ name: input.name, description: "" }));
+  const created = await insertCollection(
+    user.id,
+    collectionFields.parse({ name: input.name, description: "" }),
+  );
   await listOneOfEach(created.id, ids);
   return { id: created.id, added: ids.length };
 }
@@ -164,7 +193,11 @@ export async function deleteCollection(collectionId: string) {
 const wanted = z.number().int().min(1).max(999);
 
 /** Lists a printing in a collection (owned or not). Already listed: keeps the larger quantity. */
-export async function addCardToCollection(collectionId: string, catalogCardId: string, quantity = 1) {
+export async function addCardToCollection(
+  collectionId: string,
+  catalogCardId: string,
+  quantity = 1,
+) {
   const user = await requireUser();
   const collection = await ownedCollection(user.id, collectionId);
   const cardId = z.uuid().parse(catalogCardId);
@@ -173,9 +206,20 @@ export async function addCardToCollection(collectionId: string, catalogCardId: s
     .from(catalogCards)
     .where(eq(catalogCards.id, cardId));
   if (!card) throw new Error("Carta no encontrada en el catálogo");
-  await addToCollection(collection.id, [{ catalogCardId: cardId, quantity: wanted.parse(quantity) }]);
+  await addToCollection(collection.id, [
+    { catalogCardId: cardId, quantity: wanted.parse(quantity) },
+  ]);
   refresh();
   return { name: card.name, collectionName: collection.name };
+}
+
+/**
+ * «Lo quiero» on a card page: this printing goes on the wants list, which is made on the spot if
+ * it's the first one. Listing it again is harmless — addToCollection keeps the larger quantity.
+ */
+export async function addCardToWants(catalogCardId: string) {
+  const list = await wantsList();
+  return addCardToCollection(list.id, catalogCardId, 1);
 }
 
 export async function setWanted(collectionId: string, catalogCardId: string, quantity: number) {
@@ -232,20 +276,23 @@ export async function moveCollectionCards(input: z.input<typeof moveCardsInput>)
   const rows = await db
     .select({ catalogCardId: collectionCards.catalogCardId, quantity: collectionCards.quantity })
     .from(collectionCards)
-    .where(and(eq(collectionCards.collectionId, from), inArray(collectionCards.catalogCardId, catalogCardIds)));
+    .where(
+      and(
+        eq(collectionCards.collectionId, from),
+        inArray(collectionCards.catalogCardId, catalogCardIds),
+      ),
+    );
   await addToCollection(target.id, rows);
   if (!keep && rows.length) {
-    await db
-      .delete(collectionCards)
-      .where(
-        and(
-          eq(collectionCards.collectionId, from),
-          inArray(
-            collectionCards.catalogCardId,
-            rows.map((r) => r.catalogCardId),
-          ),
+    await db.delete(collectionCards).where(
+      and(
+        eq(collectionCards.collectionId, from),
+        inArray(
+          collectionCards.catalogCardId,
+          rows.map((r) => r.catalogCardId),
         ),
-      );
+      ),
+    );
   }
   refresh();
   return { moved: rows.length, collectionName: target.name };

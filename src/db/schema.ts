@@ -28,6 +28,12 @@ export const itemSource = pgEnum("item_source", ["manual", "scan"]);
 // Where a card goes in a deck (D35). The same as BOARDS in src/lib/decks/decklist.ts.
 export const deckBoard = pgEnum("deck_board", ["commander", "main", "side", "maybe"]);
 
+/**
+ * A list of printings is either a collection ("Pokédex de Hoenn") or the wants list: the same
+ * table and the same entries, kept apart so wanting a card isn't filed as a collection (D23).
+ */
+export const listKind = pgEnum("list_kind", ["collection", "wants"]);
+
 const money = (name: string) => numeric(name, { precision: 10, scale: 2, mode: "number" });
 
 const timestamps = {
@@ -79,7 +85,10 @@ export const catalogCards = pgTable(
     collectorNumber: text("collector_number").notNull(),
     rarity: text("rarity"),
     typeLine: text("type_line"),
-    finishes: text("finishes").array().notNull().default(sql`'{}'::text[]`),
+    finishes: text("finishes")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     imageSmall: text("image_small"),
     imageNormal: text("image_normal"),
     releasedAt: date("released_at"),
@@ -114,12 +123,24 @@ export const oracleCards = pgTable(
     manaCost: text("mana_cost"),
     // Room for Gleemax ({1000000}) and half-mana Un-cards (0.5).
     cmc: numeric("cmc", { precision: 10, scale: 1, mode: "number" }).notNull().default(0),
-    colors: text("colors").array().notNull().default(sql`'{}'::text[]`),
-    colorIdentity: text("color_identity").array().notNull().default(sql`'{}'::text[]`),
+    colors: text("colors")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    colorIdentity: text("color_identity")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     typeLine: text("type_line"),
     oracleText: text("oracle_text"),
-    keywords: text("keywords").array().notNull().default(sql`'{}'::text[]`),
-    producedMana: text("produced_mana").array().notNull().default(sql`'{}'::text[]`),
+    keywords: text("keywords")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    producedMana: text("produced_mana")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     // The main formats only (FORMATS in scryfall/map.ts): "legal", "not_legal", "banned", "restricted".
     legalities: jsonb("legalities").$type<Record<string, string>>().notNull().default({}),
     // On Commander's Game Changers list, which sets a deck's bracket.
@@ -164,6 +185,8 @@ export const collections = pgTable(
     description: text("description"),
     /** Free notes on the whole collection, longer than the description, edited on its page. */
     notes: text("notes"),
+    /** «Wants» has its own tab and stays out of the pickers; everything else is a collection. */
+    kind: listKind("kind").notNull().default("collection"),
     ...timestamps,
   },
   (t) => [index("collections_owner_idx").on(t.ownerId)],
@@ -471,7 +494,10 @@ export const decks = pgTable(
     locationId: uuid("location_id").references(() => locations.id, { onDelete: "set null" }),
     ...timestamps,
   },
-  (t) => [index("decks_owner_idx").on(t.ownerId), uniqueIndex("decks_location_uq").on(t.locationId)],
+  (t) => [
+    index("decks_owner_idx").on(t.ownerId),
+    uniqueIndex("decks_location_uq").on(t.locationId),
+  ],
 );
 
 export const deckCards = pgTable(
@@ -486,7 +512,9 @@ export const deckCards = pgTable(
       .references(() => oracleCards.oracleId, { onDelete: "cascade" }),
     quantity: integer("quantity").notNull().default(1),
     // The printing the owner prefers, for its picture and price; null: the cheapest.
-    catalogCardId: uuid("catalog_card_id").references(() => catalogCards.id, { onDelete: "set null" }),
+    catalogCardId: uuid("catalog_card_id").references(() => catalogCards.id, {
+      onDelete: "set null",
+    }),
     // What the card does here (ROLES in src/lib/decks/roles.ts), set by the owner; null: guessed
     // from its text.
     roles: text("roles").array(),

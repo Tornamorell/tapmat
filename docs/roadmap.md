@@ -75,6 +75,10 @@ compartidas, 7 días de precios guardados y 12 días de valor del inventario.
 - **«IA automática»** en el escáner (D31): interruptor, apagado por defecto, para que la carta
   con la que el lector se atasca se mande sola a la IA en vez de esperar a que pulses. Una
   llamada por carta, y se apaga solo al llegar al límite diario.
+- **Lista de «Wants»** (D23): pestaña propia junto a Colecciones y Mazos, con «Lo quiero» de un
+  toque en la ficha de cualquier carta. Es una lista como las demás (`collections.kind`), así que
+  trae de serie el progreso y lo que costaría conseguir lo que falta, pero no sale en los
+  selectores al dar de alta ni al escanear.
 - **Escáner** (todo en `docs/scanner.md`): la franja se lee como texto disperso, la clave de
   votación ya no confunde cartas distintas, la franja de una carta encontrada va **debajo** de su
   marco, se aceptan códigos de expansión con una letra mal, se encuentran las reimpresiones de
