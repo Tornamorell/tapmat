@@ -29,15 +29,15 @@ cámara trasera (getUserMedia, se piden 3840×2160; el móvil da lo que puede)
 
 - **Qué se lee de cada tipo de carta:**
 
-  | Carta | Franja de datos | Si falla |
-  | --- | --- | --- |
-  | Magic 2023+ | `U 0001` / `MKM • EN`: código y número | Título |
-  | Magic 2014–2022 | `001/280 C` / `M20 • EN`: código y número | Título |
-  | Magic 2003–2013 | `146/249` junto al copyright, **ilegible** | **Título**. Con la expansión fija sale una sola carta. |
-  | Pokémon Escarlata y Púrpura en adelante | `G [PAL EN] 001/193`: código (`sets.print_code`) o total | Título |
-  | Pokémon Espada y Escudo y anteriores | `F 001/195`: total (`sets.printed_total`) y número | Título |
-  | Pokémon promos Escarlata y Púrpura (SVP) | `G [SVP EN] 053 ★`: sin total, y «SVP EN» en blanco sobre negro. **Ilegible** | Título |
-  | Full art / ilustraciones especiales | Texto blanco con contorno sobre la ilustración. En Pokémon, **ilegible** | Título; si no, IA o búsqueda manual |
+  | Carta                                    | Franja de datos                                                               | Si falla                                               |
+  | ---------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------ |
+  | Magic 2023+                              | `U 0001` / `MKM • EN`: código y número                                        | Título                                                 |
+  | Magic 2014–2022                          | `001/280 C` / `M20 • EN`: código y número                                     | Título                                                 |
+  | Magic 2003–2013                          | `146/249` junto al copyright, **ilegible**                                    | **Título**. Con la expansión fija sale una sola carta. |
+  | Pokémon Escarlata y Púrpura en adelante  | `G [PAL EN] 001/193`: código (`sets.print_code`) o total                      | Título                                                 |
+  | Pokémon Espada y Escudo y anteriores     | `F 001/195`: total (`sets.printed_total`) y número                            | Título                                                 |
+  | Pokémon promos Escarlata y Púrpura (SVP) | `G [SVP EN] 053 ★`: sin total, y «SVP EN» en blanco sobre negro. **Ilegible** | Título                                                 |
+  | Full art / ilustraciones especiales      | Texto blanco con contorno sobre la ilustración. En Pokémon, **ilegible**      | Título; si no, IA o búsqueda manual                    |
 
 - **Correcciones del OCR** en `parseCollectorLine`:
   - Letras en lugar de dígitos dentro de números (`0O1/I93` → `001/193`) y un símbolo pegado
@@ -114,7 +114,7 @@ cámara trasera (getUserMedia, se piden 3840×2160; el móvil da lo que puede)
     - linterna, si el móvil la ofrece en `getCapabilities().torch`;
     - «Identificar con IA»;
     - «Para luego», con las que hay por revisar;
-    - ajustes: «Ajustar recuadro», «Buscar la carta» y «Ver lo que lee».
+    - ajustes: «Ajustar recuadro», «Buscar la carta», «IA automática» y «Ver lo que lee».
   - **En medio:** el recuadro guía, con la franja de datos marcada en amarillo y el estado de la
     lectura.
     - Va centrado en la pantalla, donde mira la cámara, y no cambia de tamaño ni de sitio. Antes
@@ -171,6 +171,7 @@ cámara trasera (getUserMedia, se piden 3840×2160; el móvil da lo que puede)
     La cola se resuelve en `/review`, a la que se llega con el enlace «N por revisar» del
     escáner y de Mis cartas. Cada foto sale con la búsqueda rellenada con ese nombre, y la carta
     se añade con los ajustes guardados.
+
   - **Historial y total de la sesión:**
     - Arriba a la derecha, «12 · 34,50 €»: cartas y valor de la sesión, con el precio de cada
       acabado en el momento de leerla. Las copias sin precio se cuentan aparte.
@@ -219,8 +220,15 @@ cámara trasera (getUserMedia, se piden 3840×2160; el móvil da lo que puede)
       - Si hay una carta a la vista («Buscar la carta») y nada la reconoce en 6 s (`STUCK_MS`),
         el botón se rodea de oro, late y al lado aparece «¿No la reconoce? Pruébala con la IA».
       - Sin IA, se ilumina «Para luego».
-      - No llama a la IA por su cuenta, porque gastaría sin preguntar. En el mazo de 100
-        cartas, el usuario tuvo que pensar en pulsarla en 5 cartas de marco especial.
+      - **Con «IA automática» encendido** (2026-09-23) ese mismo momento la manda sola, y el
+        aviso pasa a «No la reconoce: la está mirando la IA». Va **apagado por defecto**, porque
+        gastaría sin preguntar: en el mazo de 100 cartas el usuario solo tuvo que pulsarla en 5
+        de marco especial. El interruptor es para las tandas en las que se atasca en casi todas,
+        como los álbumes de fútbol.
+      - En automático: como mucho **una llamada por carta** (`autoTried`, que se reinicia cuando
+        la carta sale del recuadro), nunca encima de unas candidatas ya en pantalla, aviso cuando
+        quedan 10 o menos del día, y al llegar al límite **el interruptor se apaga solo** en vez
+        de reintentar con cada carta.
       - El reloj vuelve a cero al añadir, al volver a leer la carta ya añadida, al pulsar la IA
         o «Para luego», y mientras hay candidatas en pantalla o ninguna carta a la vista.
     - Manda la foto del recuadro (JPEG de 560 px) a `POST /api/scan/identify`, que se la pasa a
@@ -248,36 +256,36 @@ cámara trasera (getUserMedia, se piden 3840×2160; el móvil da lo que puede)
 ## Requisitos
 
 - **HTTPS** (o `localhost`), porque el navegador solo da la cámara en contextos seguros.
-- Tesseract.js descarga su *worker*, su *core* (WASM) y el idioma `eng` desde jsDelivr la
+- Tesseract.js descarga su _worker_, su _core_ (WASM) y el idioma `eng` desde jsDelivr la
   primera vez (unos MB).
 
 ## Mediciones (2026-09-11, escaneos de Scryfall y TCGdex)
 
 **Franja de datos:**
 
-| Muestra | Lectura | Resultado |
-| --- | --- | --- |
-| DMU 107 | `107/281 M ⏎ DMU EN CHRIS RAHN` | ✅ Sheoldred, the Apocalypse |
-| MKM 1, WOE 1, ELD 1, M20 1 | Correctas | ✅ |
-| Pokémon PAL 001 | `BPAL 001/193` | ✅ |
-| Pokémon SIT 001 | `F 001/195` | ✅ por el total |
-| Pokémon PBL 001 | `001/084` | ✅ |
-| M10 146 (marco antiguo) | Ruido | ❌ |
-| Pokémon 151 #199 (ilustración especial) | Ruido | ❌ |
+| Muestra                                 | Lectura                         | Resultado                    |
+| --------------------------------------- | ------------------------------- | ---------------------------- |
+| DMU 107                                 | `107/281 M ⏎ DMU EN CHRIS RAHN` | ✅ Sheoldred, the Apocalypse |
+| MKM 1, WOE 1, ELD 1, M20 1              | Correctas                       | ✅                           |
+| Pokémon PAL 001                         | `BPAL 001/193`                  | ✅                           |
+| Pokémon SIT 001                         | `F 001/195`                     | ✅ por el total              |
+| Pokémon PBL 001                         | `001/084`                       | ✅                           |
+| M10 146 (marco antiguo)                 | Ruido                           | ❌                           |
+| Pokémon 151 #199 (ilustración especial) | Ruido                           | ❌                           |
 
 Una franja de ancho completo (y 93,5–99 %) no mejoraba el conjunto y se descartó.
 
 **Título** (resuelto con `lookupByName`, sin expansión fija):
 
-| Muestra | OCR del título | Resultado |
-| --- | --- | --- |
-| ELD 1, WOE 1 | Correcto | ✅ |
-| MKM 1 | `Case of he Shattered Pact` | ✅ |
-| M10 146 | `fi Lightning Bolt` | ✅ Lightning Bolt (tras el desempate por longitud) |
-| Pokémon Tropius, Hoppip, Venonat | `oastc, Tropius`, `and Hoppip`, `esd Venonat` | ✅ quitando la primera palabra |
-| M20 1 | `Aerial EE` | Sin coincidencia, que es lo correcto: con el umbral antiguo daba Wasteland ("Erial") |
-| DMU 107 | `I Shdlired ic gncaljiie` | ❌ (el número sí se lee) |
-| Pokémon 151 #199 | `BES Charizard GX` | ⚠️ da Charizard GX, que es otra carta |
+| Muestra                          | OCR del título                                | Resultado                                                                            |
+| -------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------ |
+| ELD 1, WOE 1                     | Correcto                                      | ✅                                                                                   |
+| MKM 1                            | `Case of he Shattered Pact`                   | ✅                                                                                   |
+| M10 146                          | `fi Lightning Bolt`                           | ✅ Lightning Bolt (tras el desempate por longitud)                                   |
+| Pokémon Tropius, Hoppip, Venonat | `oastc, Tropius`, `and Hoppip`, `esd Venonat` | ✅ quitando la primera palabra                                                       |
+| M20 1                            | `Aerial EE`                                   | Sin coincidencia, que es lo correcto: con el umbral antiguo daba Wasteland ("Erial") |
+| DMU 107                          | `I Shdlired ic gncaljiie`                     | ❌ (el número sí se lee)                                                             |
+| Pokémon 151 #199                 | `BES Charizard GX`                            | ⚠️ da Charizard GX, que es otra carta                                                |
 
 ## Mediciones (2026-09-14, Pokémon promos, full art y ex)
 
@@ -287,13 +295,14 @@ fue escanear desde la pantalla del ordenador una Mew ex promo (SVP 053), y no la
 **Franja de datos:** en las cartas normales se leen el número y el total (`001/195`,
 `230/198`), pero nunca el código de expansión. En las promos SVP y las full art no sale nada útil:
 
-| Muestra | Lectura | Resultado |
-| --- | --- | --- |
-| SVP 053 Mew ex, SVP 100 Grafaiai ex | Ruido | ❌ |
-| SVP 001 Sprigatito | `BZ 001` | ❌ (sin total ni código) |
-| 151 #199, 151 #205, SIT 186 (full art) | `1991658`, `20571658 3`, ruido | ❌ |
+| Muestra                                | Lectura                        | Resultado                |
+| -------------------------------------- | ------------------------------ | ------------------------ |
+| SVP 053 Mew ex, SVP 100 Grafaiai ex    | Ruido                          | ❌                       |
+| SVP 001 Sprigatito                     | `BZ 001`                       | ❌ (sin total ni código) |
+| 151 #199, 151 #205, SIT 186 (full art) | `1991658`, `20571658 3`, ruido | ❌                       |
 
 Se probaron varias variantes, y ninguna lee «SVP EN» ni el número de las full art:
+
 - una franja más estrecha (x 2–38 %, y 93–99 %), que además lee mal alguna normal (`001/198`
   por `001/195`);
 - la franja invertida o binarizada (Otsu);
@@ -304,13 +313,13 @@ En Magic la franja de siempre lee igual de bien, así que se dejó como estaba.
 
 **Título:** el nombre sí se lee, pero el sufijo no:
 
-| Muestra | OCR del título | Antes | Ahora (familia del nombre) |
-| --- | --- | --- | --- |
-| Mew ex (SVP 053, 151 #151) | `BE Mew XA`, `Mew ZX A` | 24 Mew, ninguna Mew ex | Mew ex, Mew V, Mew…; la SVP 053 es la 6.ª. Con la SVP fija, solo ella |
-| Charizard ex 151 #199 | `al Charizard X AS` | Charizard | La #199 es la 6.ª. Con la 151 fija, sus tres Charizard ex |
-| Pikachu ex SSP 238 | `Pikachu gw` | Pikachu | La 11.ª. Con la SSP fija, sus cuatro Pikachu ex |
-| Grafaiai ex SVP 100, Great Tusk ex SVI 230 | `ll GrafaiaiX`, `ap- Great Tuskg` | Solo la base | También la ex |
-| Magic: Lightning Bolt, MKM 1, `Aerial EE` | | | Sin cambios |
+| Muestra                                    | OCR del título                    | Antes                  | Ahora (familia del nombre)                                            |
+| ------------------------------------------ | --------------------------------- | ---------------------- | --------------------------------------------------------------------- |
+| Mew ex (SVP 053, 151 #151)                 | `BE Mew XA`, `Mew ZX A`           | 24 Mew, ninguna Mew ex | Mew ex, Mew V, Mew…; la SVP 053 es la 6.ª. Con la SVP fija, solo ella |
+| Charizard ex 151 #199                      | `al Charizard X AS`               | Charizard              | La #199 es la 6.ª. Con la 151 fija, sus tres Charizard ex             |
+| Pikachu ex SSP 238                         | `Pikachu gw`                      | Pikachu                | La 11.ª. Con la SSP fija, sus cuatro Pikachu ex                       |
+| Grafaiai ex SVP 100, Great Tusk ex SVI 230 | `ll GrafaiaiX`, `ap- Great Tuskg` | Solo la base           | También la ex                                                         |
+| Magic: Lightning Bolt, MKM 1, `Aerial EE`  |                                   |                        | Sin cambios                                                           |
 
 ## Mediciones (2026-09-14, franja de una carta encontrada entera)
 
@@ -375,15 +384,15 @@ real paso a paso (`findCard` → franjas → OCR → `parseCollectorLine`):
 **Regresión con 15 cartas** (imágenes de catálogo con la caja metida un 4 % hacia dentro, para
 simular el marco que se encuentra en un slinger), puntuando contra el propio catálogo:
 
-| Franja | Número | Código | Las dos |
-| --- | --- | --- | --- |
-| La de hoy, PSM 6 | 12 | 8 | 8 |
-| **La de hoy, PSM 11** | **14** | **9** | **9** |
-| Más estrecha (x 0–40 %, y 97,5–107,5 %), PSM 6 | 11 | 7 | 6 |
-| Más estrecha, PSM 11 | 7 | 2 | 2 |
+| Franja                                         | Número | Código | Las dos |
+| ---------------------------------------------- | ------ | ------ | ------- |
+| La de hoy, PSM 6                               | 12     | 8      | 8       |
+| **La de hoy, PSM 11**                          | **14** | **9**  | **9**   |
+| Más estrecha (x 0–40 %, y 97,5–107,5 %), PSM 6 | 11     | 7      | 6       |
+| Más estrecha, PSM 11                           | 7      | 2      | 2       |
 
 - PSM 11 no pierde ninguna carta y gana MOM 298 (`null` → `0298 MOM`). Además corrige dos
-  lecturas *equivocadas* de PSM 6: SV09 001, que leía `901`, y ME01 001, donde leía el código
+  lecturas _equivocadas_ de PSM 6: SV09 001, que leía `901`, y ME01 001, donde leía el código
   `ELD` —una expansión que existe— en una carta MEG.
 - Y es **más rápido**: 34 ms frente a 56 ms en la misma franja de 140 px.
 - **Descartada la franja más estrecha.** Leía la foto de la Cultivate, pero estaba ajustada a esa
@@ -445,11 +454,11 @@ puesta**: el recuadro amarillo cae sobre la línea y la miniatura del panel ense
 
 Cinco lecturas distintas en esos 3,4 s, unos 680 ms cada una:
 
-| Lecturas | Texto de Tesseract | `parseCollectorLine` |
-| --- | --- | --- |
-| 1–3 | `269 R ⏎ 4 ⏎ H EN SUNG CHOI` | **null**: `H` no llega a código y `269` no lleva barra |
-| 4 | `248/269 R ⏎ 4 ⏎ KH EN SUNG CHOI` | 248/269, sin código |
-| 5 | `48/269 R ⏎ Y AKH EN SUNG CHOI` | 48/269, código AKH |
+| Lecturas | Texto de Tesseract                | `parseCollectorLine`                                   |
+| -------- | --------------------------------- | ------------------------------------------------------ |
+| 1–3      | `269 R ⏎ 4 ⏎ H EN SUNG CHOI`      | **null**: `H` no llega a código y `269` no lleva barra |
+| 4        | `248/269 R ⏎ 4 ⏎ KH EN SUNG CHOI` | 248/269, sin código                                    |
+| 5        | `48/269 R ⏎ Y AKH EN SUNG CHOI`   | 48/269, código AKH                                     |
 
 - **Tres de cinco lecturas no dan nada**, y las otras dos no coinciden: la clave de la votación
   cambia cada vez y **nunca llega a 2 de 6, así que la carta no se añade nunca.** Eso es lo que se
@@ -502,12 +511,12 @@ De ahí salen los dos fallos que se ven en el panel:
 **La franja nueva es x 0–45 %, y 98–109 %.** Sobre la foto real, con la caja que devolvió
 `findCard`:
 
-| Franja | Lectura | Número | Código |
-| --- | --- | --- | --- |
-| La de hoy (x 0–55 %, y 93–108 %) | `285 ⏎ WCC EN 5 ANTHONY PALUMBO` | sí | **no** |
-| **x 0–45 %, y 98–109 %** | `285 ⏎ C ⏎ NCC EN ANTHONY PALUMBO` | sí | **sí** |
-| x 0–45 %, y 100–109 % | `285 ⏎ NCC EN TT PALUMBO` | sí | sí |
-| x 0–45 %, y 102–111 % | `NCC EN ANTHONY PALUMBO` | **no** | sí |
+| Franja                           | Lectura                            | Número | Código |
+| -------------------------------- | ---------------------------------- | ------ | ------ |
+| La de hoy (x 0–55 %, y 93–108 %) | `285 ⏎ WCC EN 5 ANTHONY PALUMBO`   | sí     | **no** |
+| **x 0–45 %, y 98–109 %**         | `285 ⏎ C ⏎ NCC EN ANTHONY PALUMBO` | sí     | **sí** |
+| x 0–45 %, y 100–109 %            | `285 ⏎ NCC EN TT PALUMBO`          | sí     | sí     |
+| x 0–45 %, y 102–111 %            | `NCC EN ANTHONY PALUMBO`           | **no** | sí     |
 
 Bajar la franja recupera el código que **ninguna** mejora de imagen conseguía. El borde izquierdo
 apenas influye (con −6 % lee igual, con −10 % empeora el artista), así que se deja en 0 para no
@@ -526,6 +535,7 @@ con lecturas inestables tarda o no llega.
 ## Parámetros de ajuste
 
 En `scanner.tsx`:
+
 - `INFO_HEIGHT` (140) y `TITLE_HEIGHT` (90).
 - `TICK_MS` (250).
 - `VOTES_NEEDED` (2) de `VOTE_WINDOW` (6).
@@ -533,6 +543,7 @@ En `scanner.tsx`:
 - `STUCK_MS` (6000): cuánto tiempo sin reconocer una carta a la vista antes de sugerir la IA.
 
 En `geometry.ts`:
+
 - `INFO_STRIP` y `TITLE_STRIP`.
 - El relleno del recuadro guía, `GUIDE_FILL` (0,94), con el tamaño y la posición que elija cada
   uno (del 30 al 100 %, `GUIDE_SCALE_MIN`; `guideScale`, `guideDx` y `guideDy` en los valores
@@ -547,6 +558,7 @@ En `find-card.ts` (D36): cuántas rectas se prueban (`LINES`, 30), la inclinaci�
 de las esquinas (`EXT_WEIGHT`) y hasta dónde se empuja cada lado hacia fuera (`REACH`, 5 %).
 
 En `queries/scan.ts`:
+
 - `NAME_SIMILARITY_SURE` (0,6).
 - `NAME_SIMILARITY_MIN` (0,45).
 - `NAME_MARGIN` (0,1).

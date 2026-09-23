@@ -72,6 +72,9 @@ compartidas, 7 días de precios guardados y 12 días de valor del inventario.
 - **De dónde sale cada precio** (D39): la ficha y las tablas distinguen tu valor estimado del
   precio de mercado, y marcan las gradeadas que se están valorando como carta suelta. En Mis
   cartas hay un filtro «Gradeadas sin valor estimado» con las que quedan por rellenar.
+- **«IA automática»** en el escáner (D31): interruptor, apagado por defecto, para que la carta
+  con la que el lector se atasca se mande sola a la IA en vez de esperar a que pulses. Una
+  llamada por carta, y se apaga solo al llegar al límite diario.
 - **Escáner** (todo en `docs/scanner.md`): la franja se lee como texto disperso, la clave de
   votación ya no confunde cartas distintas, la franja de una carta encontrada va **debajo** de su
   marco, se aceptan códigos de expansión con una letra mal, se encuentran las reimpresiones de

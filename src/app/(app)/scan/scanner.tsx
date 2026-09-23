@@ -57,13 +57,13 @@ import {
   type NameLayout,
   type Rect,
 } from "@/lib/scan/geometry";
-import { canonicalNumber, parseCollectorLine, parseTitle, type CollectorLine } from "@/lib/scan/parse";
 import {
-  entryUnitPrice,
-  sessionTotals,
-  type Finish,
-  type SessionEntry,
-} from "@/lib/scan/session";
+  canonicalNumber,
+  parseCollectorLine,
+  parseTitle,
+  type CollectorLine,
+} from "@/lib/scan/parse";
+import { entryUnitPrice, sessionTotals, type Finish, type SessionEntry } from "@/lib/scan/session";
 import { normalizeForSearch } from "@/lib/search/normalize";
 import { useStickyDefaults } from "@/lib/use-sticky-defaults";
 import { cn } from "@/lib/utils";
@@ -96,9 +96,12 @@ const INFO_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/•. ";
 const TITLE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',- ";
 const FINISH_ORDER: Finish[] = ["nonfoil", "foil", "etched"];
 
-
 const describe = (line: CollectorLine) =>
-  [line.setCodes[0], line.total ? `${line.number}/${line.total}` : line.number, line.lang?.toUpperCase()]
+  [
+    line.setCodes[0],
+    line.total ? `${line.number}/${line.total}` : line.number,
+    line.lang?.toUpperCase(),
+  ]
     .filter(Boolean)
     .join(" ");
 
@@ -119,12 +122,18 @@ function stopwatch() {
 }
 
 /** Crops `rect` of `source` into `canvas` at `height` px, as contrast-stretched grayscale. */
-function captureRegion(source: CanvasImageSource, r: Rect, canvas: HTMLCanvasElement, height: number) {
+function captureRegion(
+  source: CanvasImageSource,
+  r: Rect,
+  canvas: HTMLCanvasElement,
+  height: number,
+) {
   // A strip can reach past the edge of the frame: the one below a found card, when the card sits
   // low in the view. Outside the source, drawImage paints transparent black, and that false
   // minimum flattens the contrast stretch below and washes the text out. Read only what's there.
   const sw = source instanceof HTMLVideoElement ? source.videoWidth : (source as ImageBitmap).width;
-  const sh = source instanceof HTMLVideoElement ? source.videoHeight : (source as ImageBitmap).height;
+  const sh =
+    source instanceof HTMLVideoElement ? source.videoHeight : (source as ImageBitmap).height;
   const x = Math.min(Math.max(0, r.x), Math.max(0, sw - 1));
   const y = Math.min(Math.max(0, r.y), Math.max(0, sh - 1));
   const w = Math.max(1, Math.min(r.w, sw - x));
@@ -174,7 +183,17 @@ function captureName(
   ctx.save();
   ctx.translate(canvas.width / 2, canvas.height / 2);
   ctx.rotate((rotate * Math.PI) / 180);
-  ctx.drawImage(source, r.x, r.y, r.w, r.h, (-r.w * scale) / 2, (-r.h * scale) / 2, r.w * scale, r.h * scale);
+  ctx.drawImage(
+    source,
+    r.x,
+    r.y,
+    r.w,
+    r.h,
+    (-r.w * scale) / 2,
+    (-r.h * scale) / 2,
+    r.w * scale,
+    r.h * scale,
+  );
   ctx.restore();
   const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const d = img.data;
@@ -275,8 +294,15 @@ export function Scanner({
   // «Ajustar recuadro»: the guide being moved and resized, saved on «Listo».
   const [adjusting, setAdjusting] = useState(false);
   const [draftPlace, setDraftPlace] = useState<GuidePlace | null>(null);
-  const dragRef = useRef<{ mode: "move" | "resize"; x: number; y: number; start: GuidePlace } | null>(null);
-  const [choices, setChoices] = useState<{ matches: ScanMatch[]; lang: string | null } | null>(null);
+  const dragRef = useRef<{
+    mode: "move" | "resize";
+    x: number;
+    y: number;
+    start: GuidePlace;
+  } | null>(null);
+  const [choices, setChoices] = useState<{ matches: ScanMatch[]; lang: string | null } | null>(
+    null,
+  );
   // The session survives reloads and closing the camera (scan-session.ts).
   const [entries, setEntries] = useScanSession();
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -308,6 +334,9 @@ export function Scanner({
     /** Candidates already answered by picking one, so the chooser doesn't come back while the
      * card is still in view. Cleared when it leaves (noRead), as `holdId` is. */
     resolvedChoices: "",
+    /** The AI already tried this card on its own («IA automática», D31): don't spend another
+     * call on it while it stays in view. Cleared when it leaves, as `holdId` is. */
+    autoTried: false,
     mode: "",
     /** The strip that read a found card the catalog knows (D36), kept for the session. */
     foundStrip: null as FoundStrip | null,
@@ -409,7 +438,11 @@ export function Scanner({
     const vr = video.getBoundingClientRect();
     const sr = stageEl.getBoundingClientRect();
     const t = coverTransform(video.videoWidth, video.videoHeight, vr.width, vr.height);
-    return { video, t, area: { x: sr.left - vr.left, y: sr.top - vr.top, w: sr.width, h: sr.height } };
+    return {
+      video,
+      t,
+      area: { x: sr.left - vr.left, y: sr.top - vr.top, w: sr.width, h: sr.height },
+    };
   }
 
   /** The guide, in video pixels. */
@@ -462,7 +495,11 @@ export function Scanner({
     }
     const last = foundRef.current;
     if (quad) {
-      foundRef.current = { quad, seen: last && quadsAgree(last.quad, quad) ? last.seen + 1 : 1, missed: 0 };
+      foundRef.current = {
+        quad,
+        seen: last && quadsAgree(last.quad, quad) ? last.seen + 1 : 1,
+        missed: 0,
+      };
     } else if (last && ++last.missed >= 2) {
       foundRef.current = null;
     }
@@ -475,8 +512,15 @@ export function Scanner({
       const s = fromVideo(p, t);
       return { x: s.x - area.x, y: s.y - area.y };
     };
-    const q = { tl: onStage(kept.tl), tr: onStage(kept.tr), br: onStage(kept.br), bl: onStage(kept.bl) };
-    const points = [q.tl, q.tr, q.br, q.bl].map((p) => `${Math.round(p.x)},${Math.round(p.y)}`).join(" ");
+    const q = {
+      tl: onStage(kept.tl),
+      tr: onStage(kept.tr),
+      br: onStage(kept.br),
+      bl: onStage(kept.bl),
+    };
+    const points = [q.tl, q.tr, q.br, q.bl]
+      .map((p) => `${Math.round(p.x)},${Math.round(p.y)}`)
+      .join(" ");
     setFound((prev) => (prev?.points === points ? prev : { points, box: quadBounds(q) }));
     return kept;
   }
@@ -516,7 +560,11 @@ export function Scanner({
     const { fixedSet } = settings.current;
     const deckId = currentDeckId();
     // The deck goes in the key too: changing where the session saves changes the answer.
-    return post("/api/scan/lookup", { line, fixedSet, deckId }, JSON.stringify(["line", line, fixedSet, deckId]));
+    return post(
+      "/api/scan/lookup",
+      { line, fixedSet, deckId },
+      JSON.stringify(["line", line, fixedSet, deckId]),
+    );
   }
 
   function lookupName(name: string) {
@@ -553,6 +601,8 @@ export function Scanner({
         s.lastTitle = null;
         // The card is gone: if it comes back and is ambiguous again, ask again.
         s.resolvedChoices = "";
+        // Another card may be next: the AI gets one go at that one too.
+        s.autoTried = false;
       }
     }
   }
@@ -604,7 +654,14 @@ export function Scanner({
     layout: NameLayout,
   ) {
     const s = readState.current;
-    captureName(video, stripRect(card, layout.strip), canvas, NAME_HEIGHT, layout.rotate, layout.invert);
+    captureName(
+      video,
+      stripRect(card, layout.strip),
+      canvas,
+      NAME_HEIGHT,
+      layout.rotate,
+      layout.invert,
+    );
     const text = await ocr(canvas, "title");
     setLastText(`nombre: ${text.trim() || "—"}`);
     const name = parseTitle(text);
@@ -613,7 +670,14 @@ export function Scanner({
     if (name && matches.length) {
       s.empty = 0;
       setStatus(`Leyendo «${name}»…`);
-      if (vote(`n:${matches.map((m) => m.id).sort().join()}`) >= VOTES_NEEDED) {
+      if (
+        vote(
+          `n:${matches
+            .map((m) => m.id)
+            .sort()
+            .join()}`,
+        ) >= VOTES_NEEDED
+      ) {
         await resolve(byRarity(matches), null, `Leído «${name}»`);
       }
     } else {
@@ -625,7 +689,9 @@ export function Scanner({
   async function loadPhotoHashes() {
     const { fixedSet } = settings.current;
     try {
-      const query = fixedSet ? `?set=${encodeURIComponent(`${fixedSet.game}:${fixedSet.code}`)}` : "";
+      const query = fixedSet
+        ? `?set=${encodeURIComponent(`${fixedSet.game}:${fixedSet.code}`)}`
+        : "";
       const res = await fetch(`/api/scan/hashes${query}`);
       if (!res.ok) return;
       const { hashes } = (await res.json()) as { hashes: { id: string; hash: string }[] };
@@ -649,7 +715,10 @@ export function Scanner({
     const pixels = cardInGuidePixels(video, card);
     if (!pixels) return false;
     const hash = cardHash(pixels.data, pixels.width, pixels.height);
-    const match = bestMatch(hash, Array.from(photos, ([id, h]) => ({ id, hash: h })));
+    const match = bestMatch(
+      hash,
+      Array.from(photos, ([id, h]) => ({ id, hash: h })),
+    );
     if (!match) return false;
     readState.current.empty = 0;
     setLastText(`foto: a ${match.distance} bits`);
@@ -675,7 +744,12 @@ export function Scanner({
     if (settings.current.defaults.findCard) watch.lap("buscar");
     // The «stuck» clock only runs while a card is found in view and no choices are on screen.
     if (!(foundRef.current && foundRef.current.seen >= 2) || s.choicesKey) progress();
-    else if (performance.now() - s.progressAt > STUCK_MS) setStuck(true);
+    else if (performance.now() - s.progressAt > STUCK_MS) {
+      setStuck(true);
+      // «IA automática» (D31): the very moment that lights up the button, done for you instead.
+      // identifyWithAi keeps the one-call-per-card flag and the rest of the guards.
+      if (aiEnabled && settings.current.defaults.autoIdentify) void identifyWithAi({ auto: true });
+    }
     // A found card that doesn't read may not be the card: then every other read is of the guide.
     const onCard = located && !(s.empty >= 3 && s.tick % 2 === 1) ? located : null;
     const card = onCard ? quadBounds(onCard) : cardInVideo();
@@ -697,7 +771,9 @@ export function Scanner({
         // On a found card (D36) the number is on it, where the guide has it, or below it when
         // only its inner frame was found (a slinger): the strip that has read cards this
         // session, else each in turn.
-        const foundStrip = onCard ? pickFoundStrip(s.foundStrip, s.stripMisses, s.stripTurn++) : null;
+        const foundStrip = onCard
+          ? pickFoundStrip(s.foundStrip, s.stripMisses, s.stripTurn++)
+          : null;
         const infoStrip = foundStrip ? FOUND_INFO_STRIPS[foundStrip] : INFO_STRIP;
         captureRegion(video, stripRect(card, infoStrip), canvas, INFO_HEIGHT);
         const text = await ocr(canvas, "info");
@@ -781,7 +857,15 @@ export function Scanner({
         const [top, ...rest] = list;
         if (top?.itemId === r.itemId) return [{ ...top, count: top.count + 1 }, ...rest];
         return [
-          { key: crypto.randomUUID(), itemId: r.itemId, match, lang, count: 1, finish, addedAt: Date.now() },
+          {
+            key: crypto.randomUUID(),
+            itemId: r.itemId,
+            match,
+            lang,
+            count: 1,
+            finish,
+            addedAt: Date.now(),
+          },
           ...list,
         ];
       });
@@ -921,8 +1005,13 @@ export function Scanner({
    * «Identificar con IA» (D31): the photo in the guide goes to Claude, and what it reads is
    * matched against the catalog. One match is added; several are offered, the likeliest first.
    */
-  async function identifyWithAi() {
+  async function identifyWithAi({ auto = false } = {}) {
     if (identifying || !cardInVideo()) return;
+    // An automatic call spends money without anyone asking for it: at most one per card, and
+    // never on top of a choice already on screen. The flag is a ref, set before the first await,
+    // because `identifying` is state and the read loop may hold a stale copy of it.
+    if (auto && (readState.current.autoTried || readState.current.choicesKey)) return;
+    readState.current.autoTried = true;
     setIdentifying(true);
     progress();
     setChoices(null);
@@ -937,14 +1026,23 @@ export function Scanner({
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
         const message = body.error ?? "No se ha podido identificar la carta.";
-        toast.error(message);
+        // Out of calls for today: stop asking on its own, or it retries on every card.
+        if (res.status === 429 && settings.current.defaults.autoIdentify) {
+          setDefaults({ autoIdentify: false });
+          toast.error(`${message} He desactivado la IA automática.`);
+        } else {
+          toast.error(message);
+        }
         setStatus(message);
         return;
       }
-      const { reading, matches } = body as {
+      const { reading, matches, remaining } = body as {
         reading: { isCard: boolean; name: string } | null;
         matches: ScanMatch[];
+        remaining: number;
       };
+      // Running out without noticing is worse in automatic mode: nobody is pressing anything.
+      if (auto && remaining <= 10) toast(`Quedan ${remaining} identificaciones con IA hoy.`);
       const s = readState.current;
       if (!reading?.isCard) {
         setStatus("La IA no ve ninguna carta en el recuadro.");
@@ -1044,7 +1142,11 @@ export function Scanner({
       audio ??= new AudioContext();
       void audio.resume();
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: "environment" }, width: { ideal: 3840 }, height: { ideal: 2160 } },
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 3840 },
+          height: { ideal: 2160 },
+        },
         audio: false,
       });
       streamRef.current = stream;
@@ -1127,13 +1229,22 @@ export function Scanner({
       const card = { x: 0, y: 0, w: bitmap.width, h: bitmap.height };
       const layout = settings.current.nameLayout;
       if (layout) {
-        captureName(bitmap, stripRect(card, layout.strip), canvas, NAME_HEIGHT, layout.rotate, layout.invert);
+        captureName(
+          bitmap,
+          stripRect(card, layout.strip),
+          canvas,
+          NAME_HEIGHT,
+          layout.rotate,
+          layout.invert,
+        );
         const read = await ocr(canvas, "title");
         setLastText(`nombre: ${read.trim() || "—"}`);
         const name = parseTitle(read);
         const found = name ? await lookupName(name) : [];
         if (!found.length) {
-          setStatus("No he podido leer el nombre. Recorta la foto a la carta, por delante, y prueba otra vez.");
+          setStatus(
+            "No he podido leer el nombre. Recorta la foto a la carta, por delante, y prueba otra vez.",
+          );
           return;
         }
         setChoices({ matches: byRarity(found), lang: null });
@@ -1159,7 +1270,9 @@ export function Scanner({
       }
       setLastText(text.trim());
       if (!matches.length) {
-        setStatus("No he podido identificar la carta. Recorta la foto a la carta y prueba otra vez.");
+        setStatus(
+          "No he podido identificar la carta. Recorta la foto a la carta y prueba otra vez.",
+        );
         return;
       }
       setChoices({ matches, lang: line?.lang ?? null });
@@ -1284,16 +1397,22 @@ export function Scanner({
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <span className="text-muted-foreground">Por defecto</span>
           <FinishSelect value={defaults.finish} onChange={(v) => setDefaults({ finish: v })} />
-          <ConditionSelect value={defaults.condition} onChange={(v) => setDefaults({ condition: v })} />
-          <LanguageSelect value={defaults.language} onChange={(v) => setDefaults({ language: v })} />
+          <ConditionSelect
+            value={defaults.condition}
+            onChange={(v) => setDefaults({ condition: v })}
+          />
+          <LanguageSelect
+            value={defaults.language}
+            onChange={(v) => setDefaults({ language: v })}
+          />
         </div>
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <span className="text-muted-foreground">Expansión fija</span>
           <SetPicker sets={sets} value={fixedSet} onChange={setFixedSet} />
         </div>
         <p className="text-muted-foreground text-xs">
-          Con una expansión fija basta con leer el número o el nombre: ideal para una caja de la misma
-          expansión o cartas sin código impreso (Magic anterior a 2014).
+          Con una expansión fija basta con leer el número o el nombre: ideal para una caja de la
+          misma expansión o cartas sin código impreso (Magic anterior a 2014).
         </p>
       </section>
 
@@ -1341,7 +1460,11 @@ export function Scanner({
       )}
 
       {!running && choices && (
-        <ChoicesGrid matches={choices.matches} onChoose={choose} onDismiss={() => setChoices(null)} />
+        <ChoicesGrid
+          matches={choices.matches}
+          onChoose={choose}
+          onDismiss={() => setChoices(null)}
+        />
       )}
 
       {entries.length > 0 && (
@@ -1367,7 +1490,9 @@ export function Scanner({
       )}
 
       <details className="rounded-lg border p-3">
-        <summary className="cursor-pointer text-sm font-medium">¿No la reconoce? Búscala a mano</summary>
+        <summary className="cursor-pointer text-sm font-medium">
+          ¿No la reconoce? Búscala a mano
+        </summary>
         <div className="pt-3">
           <QuickAdd locations={locations} collections={collections} />
         </div>
@@ -1377,11 +1502,19 @@ export function Scanner({
           over it, so nothing takes room from the guide or moves it. Always mounted: the read
           loop needs the video, stage and canvas refs. */}
       <div
-        className={cn("fixed inset-0 z-50 overflow-hidden bg-black text-white", !running && "hidden")}
+        className={cn(
+          "fixed inset-0 z-50 overflow-hidden bg-black text-white",
+          !running && "hidden",
+        )}
         role="dialog"
         aria-label="Escáner"
       >
-        <video ref={videoRef} playsInline muted className="absolute inset-0 h-full w-full object-cover" />
+        <video
+          ref={videoRef}
+          playsInline
+          muted
+          className="absolute inset-0 h-full w-full object-cover"
+        />
 
         {/* Where the guide goes: the whole screen but a band top and bottom for the floating
             bars, so it stays centred where the camera looks. */}
@@ -1421,7 +1554,10 @@ export function Scanner({
                     <span
                       key={corner}
                       aria-hidden
-                      className={cn("bg-primary absolute size-8 touch-none rounded-full ring-4 ring-black/40", corner)}
+                      className={cn(
+                        "bg-primary absolute size-8 touch-none rounded-full ring-4 ring-black/40",
+                        corner,
+                      )}
                       onPointerDown={(e) => {
                         e.stopPropagation();
                         startDrag(e, "resize");
@@ -1433,7 +1569,7 @@ export function Scanner({
                   ))}
               </div>
               <div
-                className="absolute rounded border-2 border-primary"
+                className="border-primary absolute rounded border-2"
                 style={{ left: strip.x, top: strip.y, width: strip.w, height: strip.h }}
               />
               {found && !adjusting && (
@@ -1483,7 +1619,8 @@ export function Scanner({
             aria-label={`Esta sesión: ${totalsText}. Ver el historial`}
             className="rounded-full bg-black/55 px-3 py-1 text-sm tabular-nums backdrop-blur hover:bg-black/70"
           >
-            {totals.cards} · <span className="text-primary font-semibold">{formatEur(totals.valueEur)}</span>
+            {totals.cards} ·{" "}
+            <span className="text-primary font-semibold">{formatEur(totals.valueEur)}</span>
           </button>
         </div>
 
@@ -1534,7 +1671,11 @@ export function Scanner({
           >
             {saving ? <LoaderCircleIcon className="animate-spin" /> : <ClockIcon />}
           </ToolButton>
-          <ToolButton label="Ajustes del escáner" pressed={toolsOpen} onClick={() => setToolsOpen((open) => !open)}>
+          <ToolButton
+            label="Ajustes del escáner"
+            pressed={toolsOpen}
+            onClick={() => setToolsOpen((open) => !open)}
+          >
             <SlidersHorizontalIcon />
           </ToolButton>
         </div>
@@ -1545,7 +1686,11 @@ export function Scanner({
             role="status"
             className="absolute top-[calc(max(env(safe-area-inset-top),0.75rem)+3.5rem)] right-17 z-10 max-w-48 rounded-xl bg-black/80 px-3 py-2 text-sm backdrop-blur"
           >
-            {aiEnabled ? "¿No la reconoce? Pruébala con la IA." : "¿No la reconoce? Guárdala para luego."}
+            {!aiEnabled
+              ? "¿No la reconoce? Guárdala para luego."
+              : defaults.autoIdentify
+                ? "No la reconoce: la está mirando la IA."
+                : "¿No la reconoce? Pruébala con la IA."}
           </p>
         )}
 
@@ -1559,8 +1704,8 @@ export function Scanner({
               Ajustar recuadro
             </button>
             <p className="text-xs text-white/60">
-              Muévelo y cámbialo de tamaño hasta que coincida con la carta, por ejemplo en un card slinger.
-              Se recuerda en este móvil.
+              Muévelo y cámbialo de tamaño hasta que coincida con la carta, por ejemplo en un card
+              slinger. Se recuerda en este móvil.
             </p>
             <button
               type="button"
@@ -1570,13 +1715,40 @@ export function Scanner({
               onClick={() => setDefaults({ findCard: !defaults.findCard })}
             >
               Buscar la carta
-              <span className={cn("text-xs", defaults.findCard ? "text-emerald-400" : "text-white/50")}>
+              <span
+                className={cn("text-xs", defaults.findCard ? "text-emerald-400" : "text-white/50")}
+              >
                 {defaults.findCard ? "Sí" : "No"}
               </span>
             </button>
             <p className="text-xs text-white/60">
               La busca en toda la imagen y la marca en verde. Si no la encuentra, lee el recuadro.
             </p>
+            {aiEnabled && (
+              <>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={defaults.autoIdentify}
+                  className="flex w-full items-center justify-between rounded-lg bg-white/10 px-3 py-1.5 text-left hover:bg-white/20"
+                  onClick={() => setDefaults({ autoIdentify: !defaults.autoIdentify })}
+                >
+                  IA automática
+                  <span
+                    className={cn(
+                      "text-xs",
+                      defaults.autoIdentify ? "text-emerald-400" : "text-white/50",
+                    )}
+                  >
+                    {defaults.autoIdentify ? "Sí" : "No"}
+                  </span>
+                </button>
+                <p className="text-xs text-white/60">
+                  Cuando el lector se atasque con una carta, la manda sola a la IA en vez de esperar
+                  a que pulses. Una vez por carta, y cuesta dinero: hay un límite de 150 al día.
+                </p>
+              </>
+            )}
             <button
               type="button"
               className="w-full rounded-lg bg-white/10 px-3 py-1.5 text-left hover:bg-white/20"
@@ -1590,7 +1762,9 @@ export function Scanner({
         {showDebug && (
           <div className="absolute top-[calc(max(env(safe-area-inset-top),0.75rem)+5.5rem)] left-3 z-10 max-w-[55%] space-y-1 rounded-lg bg-black/70 p-2">
             <canvas ref={canvasRef} className="max-h-16 max-w-full rounded bg-white" />
-            <pre className="max-h-24 overflow-auto text-[10px] text-white/80">{lastText || "—"}</pre>
+            <pre className="max-h-24 overflow-auto text-[10px] text-white/80">
+              {lastText || "—"}
+            </pre>
             {timing && <p className="text-[10px] text-white/60 tabular-nums">{timing}</p>}
           </div>
         )}
@@ -1600,8 +1774,8 @@ export function Scanner({
         {adjusting && (
           <div className="absolute inset-x-3 top-[max(env(safe-area-inset-top),0.75rem)] z-30 space-y-2 rounded-2xl bg-black/80 p-3 backdrop-blur">
             <p className="text-sm">
-              Arrastra el recuadro hasta la carta y tira de cualquier esquina para cambiar su tamaño.
-              La lectura está en pausa.
+              Arrastra el recuadro hasta la carta y tira de cualquier esquina para cambiar su
+              tamaño. La lectura está en pausa.
             </p>
             <div className="flex flex-wrap gap-2">
               <Button size="sm" onClick={finishAdjust}>
@@ -1650,7 +1824,11 @@ export function Scanner({
               <ul className="flex gap-2 overflow-x-auto pb-1">
                 {choices.matches.map((m) => (
                   <li key={m.id} className="w-14 shrink-0">
-                    <button type="button" onClick={() => choose(m)} className="w-full text-left text-[10px]">
+                    <button
+                      type="button"
+                      onClick={() => choose(m)}
+                      className="w-full text-left text-[10px]"
+                    >
                       <CardThumb
                         src={m.imageSmall}
                         alt={m.name}
@@ -1705,9 +1883,17 @@ export function Scanner({
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto">
               {entries.length ? (
-                <SessionList entries={entries} busy={busy} onMinus={minusOne} onPlus={plusOne} tone="overlay" />
+                <SessionList
+                  entries={entries}
+                  busy={busy}
+                  onMinus={minusOne}
+                  onPlus={plusOne}
+                  tone="overlay"
+                />
               ) : (
-                <p className="px-4 py-8 text-center text-sm text-white/60">Aún no has añadido nada en esta sesión.</p>
+                <p className="px-4 py-8 text-center text-sm text-white/60">
+                  Aún no has añadido nada en esta sesión.
+                </p>
               )}
             </div>
             {entries.length > 0 && (
@@ -1742,7 +1928,12 @@ function CurrentCard({
 
   return (
     <div className="flex items-center gap-2.5">
-      <CardThumb src={match.imageSmall} alt={match.name} size="xs" foil={entry.finish !== "nonfoil"} />
+      <CardThumb
+        src={match.imageSmall}
+        alt={match.name}
+        size="xs"
+        foil={entry.finish !== "nonfoil"}
+      />
       <div className="min-w-0 flex-1 leading-tight">
         <p className="truncate text-sm font-semibold">{match.name}</p>
         <p className="truncate text-xs text-white/70">
@@ -1877,7 +2068,7 @@ function ChoicesGrid({
   onDismiss: () => void;
 }) {
   return (
-    <section className="space-y-2 rounded-lg border border-primary p-3">
+    <section className="border-primary space-y-2 rounded-lg border p-3">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-medium">¿Cuál es?</h2>
         <Button variant="ghost" size="sm" onClick={onDismiss}>
@@ -1910,7 +2101,6 @@ function ChoicesGrid({
     </section>
   );
 }
-
 
 /** A round button of the scanner's right column; `badge` counts something (cards to review). */
 function ToolButton({

@@ -28,6 +28,11 @@ export interface StickyDefaults {
   guideDy: number;
   /** The scanner looks for the card in the whole view and reads it where it is (D36). */
   findCard: boolean;
+  /**
+   * When the reader gets stuck on a card, ask the AI on its own instead of waiting for the
+   * button (D31). Off by default: every call costs money and the daily limit is 150.
+   */
+  autoIdentify: boolean;
 }
 
 const DEFAULTS: StickyDefaults = {
@@ -43,6 +48,7 @@ const DEFAULTS: StickyDefaults = {
   guideDx: 0,
   guideDy: 0,
   findCard: true,
+  autoIdentify: false,
 };
 
 const KEY = "cardllector:defaults";

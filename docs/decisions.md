@@ -614,12 +614,20 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
     llamada se apunta en `ai_identifications` con su coste. Además, el tope de gasto de la
     consola de Anthropic.
   - Coste: unos 1 200 tokens de entrada y 50 de salida, unos 0,003 $ por carta (3 $ cada mil).
+  - **«IA automática»** (añadido el 2026-09-23, a petición del usuario): interruptor en los
+    ajustes del escáner, **apagado por defecto** y recordado en el móvil. Con él encendido, la
+    carta se manda sola en el mismo momento en que hoy se ilumina el botón —`STUCK_MS`, seis
+    segundos con una carta en el recuadro que nada reconoce—, no en cada fotograma. Una llamada
+    por carta como mucho (`autoTried`, que se reinicia cuando la carta sale del recuadro), nunca
+    encima de una elección ya abierta, y al llegar al límite diario se apaga solo en vez de
+    reintentar con cada carta.
 - **Descartado** (medido con dos fotos, una base y una Élite Power):
   - Haiku 4.5: más barato (0,0012 $), pero falló las dos series y dijo que la base no era una
     carta.
   - Opus 5: más caro (0,007–0,014 $), y falló la serie de la base.
-  - Identificar sola cada carta que el OCR no lee: más gasto y llamadas sin querer. Se puede
-    añadir con un interruptor si el botón se queda corto.
+  - Identificar sola cada carta que el OCR no lee: más gasto y llamadas sin querer. **Ya no se
+    descarta:** el 2026-09-23 se añadió como el interruptor que preveía esta línea, apagado por
+    defecto y atado a `STUCK_MS` en vez de a cada lectura fallida (ver «IA automática» arriba).
   - Una posición de nombre por cada diseño de serie: funciona (86 % en la Élite), pero hay que
     calibrar cada diseño de cada álbum.
   - Reconocimiento por imagen: necesita una foto de referencia por carta. Más adelante, con las
