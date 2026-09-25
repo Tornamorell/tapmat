@@ -97,6 +97,8 @@ export type CollectionCard = {
   /** Copies by finish, so a pocket can show the standard and the reverse holo apart. */
   ownedNonfoil: number;
   ownedFoil: number;
+  /** Its pocket in the album when the list was arranged by hand; null means printed order. */
+  position: number | null;
   addedAt: string;
 };
 
@@ -119,6 +121,7 @@ export async function listCollectionCards(ownerId: string, collectionId: string)
            cc.quantity as wanted, coalesce(o.qty, 0)::int as owned,
            coalesce(f.nonfoil, 0)::int as "ownedNonfoil",
            coalesce(f.foil, 0)::int as "ownedFoil",
+           cc.position,
            cc.created_at::text as "addedAt"
     from collection_cards cc
     join catalog_cards cat on cat.id = cc.catalog_card_id

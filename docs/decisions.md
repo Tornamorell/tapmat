@@ -373,6 +373,16 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
     desaparecer: borrarla sola perdería el registro de que la querías, y el escáner podría
     vaciarte la lista sin que te enteres.
   - No cambia el «Revisar cuando» de arriba: las entradas siguen siendo por edición.
+- **Actualización (2026-09-25) · el orden del álbum:** `collection_cards.position` (nulable,
+  migración `0026`) guarda el orden que el usuario coloca a mano arrastrando, en la vista
+  «Álbum».
+  - Nulo mientras no se arrastre nada: entonces manda el número impreso, que es lo que hace que
+    un álbum parezca un álbum. El desempate sigue siendo el número, así que las dos formas
+    conviven sin mezclarse.
+  - Al reordenar se reescriben **todas** las posiciones en una sola sentencia
+    (`reorderCollectionCards`): un orden parcial dejaría unas cartas en posición guardada y otras
+    en el orden impreso, y esos dos criterios no se pueden intercalar.
+  - Solo afecta al álbum. La cuadrícula y la lista siguen con su selector de orden.
 
   Con los álbumes de fútbol servirá igual.
 

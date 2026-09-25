@@ -293,6 +293,11 @@ export const collectionCards = pgTable(
       .references(() => catalogCards.id, { onDelete: "cascade" }),
     // Copies wanted (4 for a Magic playset, usually 1).
     quantity: integer("quantity").notNull().default(1),
+    /**
+     * Where the card sits when the list has been arranged by hand, in the album view. Null until
+     * something is dragged: then the printed order stands, which is what an album looks like.
+     */
+    position: integer("position"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [

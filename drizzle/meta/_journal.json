@@ -183,6 +183,13 @@
       "when": 1790190127275,
       "tag": "0025_wants_list",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1790331668758,
+      "tag": "0026_album_order",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,22 @@
 "use client";
 
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  sortableKeyboardCoordinates,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { MoveIcon, Trash2Icon, XIcon } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
@@ -22,7 +39,7 @@ import { formatEur, formatInt } from "@/lib/format";
 import { finishLabel, gameById, rarityLabel } from "@/lib/games";
 import type { CollectionCard } from "@/lib/queries/collections";
 import { cn } from "@/lib/utils";
-import { moveCollectionCards, removeCardsFromCollection } from "../actions";
+import { moveCollectionCards, removeCardsFromCollection, reorderCollectionCards } from "../actions";
 import { EntryControls } from "./entry-controls";
 
 const count = (n: number) => `${formatInt(n)} ${n === 1 ? "carta" : "cartas"}`;
@@ -38,18 +55,54 @@ type Pockets = (typeof POCKETS)[number];
  * time on a wide screen and one on a phone. Cards keep the same tile as the grid, so one you
  * don't have is greyed and the + still adds a copy.
  */
-function BinderPages({ cards }: { cards: CollectionCard[] }) {
-  // Which card sits in which pocket belongs to the album, not to the sort nav: always the
-  // printed order. Sorting by price or by name would page it as nothing you could hold.
-  const ordered = useMemo(
-    () =>
-      [...cards].sort(
-        (a, b) =>
-          a.setCode.localeCompare(b.setCode) ||
-          a.collectorNumber.localeCompare(b.collectorNumber, undefined, { numeric: true }),
-      ),
-    [cards],
+function BinderPages({ cards, collectionId }: { cards: CollectionCard[]; collectionId: string }) {
+  // Which card sits in which pocket belongs to the album, not to the sort nav: the order you
+  // arranged by hand, and the printed order for everything you haven't touched. Not Infinity as
+  // the fallback: Infinity - Infinity is NaN, which would silently unsort the rest.
+  const serverOrder = useMemo(() => {
+    const pos = (c: CollectionCard) => c.position ?? Number.MAX_SAFE_INTEGER;
+    return [...cards].sort(
+      (a, b) =>
+        pos(a) - pos(b) ||
+        a.setCode.localeCompare(b.setCode) ||
+        a.collectorNumber.localeCompare(b.collectorNumber, undefined, { numeric: true }),
+    );
+  }, [cards]);
+  // The order shown right after a drag, before the server answers.
+  const [manual, setManual] = useState<string[] | null>(null);
+  const ordered = useMemo(() => {
+    if (!manual) return serverOrder;
+    const byId = new Map(serverOrder.map((c) => [c.id, c] as const));
+    const kept = manual.map((id) => byId.get(id)).filter((c) => c !== undefined);
+    const seen = new Set(kept.map((c) => c.id));
+    // Cards added or taken off since the drag: the list stays honest either way.
+    return [...kept, ...serverOrder.filter((c) => !seen.has(c.id))];
+  }, [manual, serverOrder]);
+  const [, startReorder] = useTransition();
+  const sensors = useSensors(
+    // A tap has to keep opening the card: the drag only starts once the pointer has travelled.
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
+
+  function onDragEnd({ active, over }: DragEndEvent) {
+    if (!over || active.id === over.id) return;
+    const ids = ordered.map((c) => c.id);
+    const from = ids.indexOf(String(active.id));
+    const to = ids.indexOf(String(over.id));
+    if (from < 0 || to < 0) return;
+    const next = arrayMove(ids, from, to);
+    setManual(next);
+    startReorder(async () => {
+      try {
+        await reorderCollectionCards(collectionId, next);
+      } catch {
+        toast.error("No se ha podido guardar el orden.");
+        setManual(null);
+      }
+    });
+  }
+
   const [perPage, setPerPage] = useState<Pockets>(9);
   const [spread, setSpread] = useState(0);
   // The pocket you tapped, shown big. One at a time, so the tilt costs nothing here.
@@ -101,17 +154,23 @@ function BinderPages({ cards }: { cards: CollectionCard[] }) {
         </label>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        {pages.map((p) => (
-          <BinderPage
-            key={p}
-            number={p + 1}
-            perPage={perPage}
-            cards={ordered.slice(p * perPage, (p + 1) * perPage)}
-            onOpen={setOpen}
-          />
-        ))}
-      </div>
+      {/* The whole album is one sortable list, but only the open spread is on screen, so a card
+          can be dragged within the two facing pages and not across to another one. */}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+        <SortableContext items={ordered.map((c) => c.id)} strategy={rectSortingStrategy}>
+          <div className="grid gap-4 lg:grid-cols-2">
+            {pages.map((p) => (
+              <BinderPage
+                key={p}
+                number={p + 1}
+                perPage={perPage}
+                cards={ordered.slice(p * perPage, (p + 1) * perPage)}
+                onOpen={setOpen}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
 
       {open && <CardOverlay card={open} onClose={() => setOpen(null)} />}
     </div>
@@ -141,43 +200,9 @@ function BinderPage({
     <section className="bg-card space-y-2 rounded-xl border p-3" aria-label={`Página ${number}`}>
       <p className="text-muted-foreground text-xs">Página {number}</p>
       <ul className="grid grid-cols-3 gap-2">
-        {cards.map((c) => {
-          const second = bothFinishes(c);
-          return (
-            <li key={c.id} className="space-y-1">
-              <div className="relative">
-                {/* Both finishes share a pocket, as they would in the real album. */}
-                {second && (
-                  <span
-                    className="bg-muted absolute inset-0 -z-10 translate-x-1.5 translate-y-1.5 rounded-lg border"
-                    aria-hidden
-                  />
-                )}
-                <OwnedCardTile
-                  printingId={c.id}
-                  name={c.name}
-                  number={c.collectorNumber}
-                  imageSmall={c.imageSmall}
-                  finishes={c.finishes}
-                  game={c.game}
-                  owned={c.owned}
-                  wanted={c.wanted}
-                  withCollection={false}
-                  onOpen={() => onOpen(c)}
-                />
-              </div>
-              <p className="text-muted-foreground truncate text-[11px]" title={c.name}>
-                #{c.collectorNumber} {c.name}
-              </p>
-              {second && (
-                <p className="flex gap-2 text-[10px]">
-                  <FinishCount label={finishLabel(c.game, "nonfoil")} n={c.ownedNonfoil} />
-                  <FinishCount label={finishLabel(c.game, second)} n={c.ownedFoil} />
-                </p>
-              )}
-            </li>
-          );
-        })}
+        {cards.map((c) => (
+          <SortablePocket key={c.id} card={c} onOpen={onOpen} />
+        ))}
         {Array.from({ length: empty }, (_, i) => (
           <li
             key={`empty-${i}`}
@@ -186,6 +211,64 @@ function BinderPage({
         ))}
       </ul>
     </section>
+  );
+}
+
+/**
+ * One pocket, draggable to another. The listeners sit on the whole pocket rather than on a
+ * handle: the sensor only starts a drag after the pointer has moved, so tapping still opens the
+ * card, and `attributes` brings the keyboard reordering with it.
+ */
+function SortablePocket({
+  card,
+  onOpen,
+}: {
+  card: CollectionCard;
+  onOpen: (card: CollectionCard) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: card.id,
+  });
+  const second = bothFinishes(card);
+  return (
+    <li
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={cn("space-y-1", isDragging && "z-10 opacity-60")}
+      {...attributes}
+      {...listeners}
+    >
+      <div className="relative">
+        {/* Both finishes share a pocket, as they would in the real album. */}
+        {second && (
+          <span
+            className="bg-muted absolute inset-0 -z-10 translate-x-1.5 translate-y-1.5 rounded-lg border"
+            aria-hidden
+          />
+        )}
+        <OwnedCardTile
+          printingId={card.id}
+          name={card.name}
+          number={card.collectorNumber}
+          imageSmall={card.imageSmall}
+          finishes={card.finishes}
+          game={card.game}
+          owned={card.owned}
+          wanted={card.wanted}
+          withCollection={false}
+          onOpen={() => onOpen(card)}
+        />
+      </div>
+      <p className="text-muted-foreground truncate text-[11px]" title={card.name}>
+        #{card.collectorNumber} {card.name}
+      </p>
+      {second && (
+        <p className="flex gap-2 text-[10px]">
+          <FinishCount label={finishLabel(card.game, "nonfoil")} n={card.ownedNonfoil} />
+          <FinishCount label={finishLabel(card.game, second)} n={card.ownedFoil} />
+        </p>
+      )}
+    </li>
   );
 }
 
@@ -285,7 +368,7 @@ export function CollectionCards({
     });
 
   // The filters still apply; the order doesn't, so the binder sets its own (BinderPages).
-  if (view === "binder") return <BinderPages cards={cards} />;
+  if (view === "binder") return <BinderPages cards={cards} collectionId={collectionId} />;
 
   if (view === "grid") {
     return (

@@ -91,6 +91,12 @@ compartidas, 7 días de precios guardados y 12 días de valor del inventario.
   - **Al tocar una carta se abre en grande**, con `HoloCard`: se inclina hacia el puntero y coge
     la luz. Solo hay una montada a la vez, así que el efecto que sería excesivo en 18 bolsillos
     aquí no cuesta nada.
+  - **Se reordenan arrastrando**, con `@dnd-kit` (la primera dependencia nueva en mucho tiempo,
+    elegida por el usuario porque las alternativas baratas no funcionan con el dedo). El orden se
+    guarda en `collection_cards.position` (migración `0026`) y solo afecta al álbum. Arrastrar
+    empieza a los 8 px, para que tocar siga abriendo la carta, y de paso se puede reordenar con
+    el teclado. **Solo dentro de las dos páginas abiertas:** el resto de bolsillos no está
+    montado, así que no se puede arrastrar de una página a otra.
 - **Escáner** (todo en `docs/scanner.md`): la franja se lee como texto disperso, la clave de
   votación ya no confunde cartas distintas, la franja de una carta encontrada va **debajo** de su
   marco, se aceptan códigos de expansión con una letra mal, se encuentran las reimpresiones de

@@ -237,6 +237,29 @@ export async function setWanted(collectionId: string, catalogCardId: string, qua
   refresh();
 }
 
+/**
+ * The album's order, saved (D23): the ids in their new order take positions 0…n-1, in one
+ * statement. Every entry is rewritten on purpose — a partial order would leave some cards on a
+ * saved position and others on the printed fallback, and the two can't be interleaved.
+ */
+export async function reorderCollectionCards(collectionId: string, orderedCardIds: string[]) {
+  const user = await requireUser();
+  await ownedCollection(user.id, collectionId);
+  const ids = z.array(z.uuid()).max(5000).parse(orderedCardIds);
+  if (!ids.length) return;
+  const values = sql.join(
+    ids.map((id, i) => sql`(${id}::uuid, ${i})`),
+    sql`, `,
+  );
+  await db.execute(sql`
+    update collection_cards as cc
+    set position = v.pos
+    from (values ${values}) as v(card_id, pos)
+    where cc.collection_id = ${collectionId}::uuid and cc.catalog_card_id = v.card_id
+  `);
+  refresh();
+}
+
 /** Takes a printing off the list. Owned copies stay in the inventory. */
 export async function removeCardFromCollection(collectionId: string, catalogCardId: string) {
   const user = await requireUser();
