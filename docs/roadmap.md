@@ -79,6 +79,11 @@ compartidas, 7 días de precios guardados y 12 días de valor del inventario.
   toque en la ficha de cualquier carta. Es una lista como las demás (`collections.kind`), así que
   trae de serie el progreso y lo que costaría conseguir lo que falta, pero no sale en los
   selectores al dar de alta ni al escanear.
+- **Vista «Álbum»** en las colecciones: una tercera vista, junto a Cuadrícula y Lista, que enseña
+  la colección como el binder físico — bolsillos de tres en tres, dos páginas enfrentadas en
+  pantalla ancha y una en el móvil, con los bolsillos vacíos dibujados al final. Se elige entre 9
+  y 12 bolsillos por página. Hereda los filtros, el orden y el progreso de la colección, así que
+  con el orden «Edición» las páginas salen en el orden del álbum.
 - **Escáner** (todo en `docs/scanner.md`): la franja se lee como texto disperso, la clave de
   votación ya no confunde cartas distintas, la franja de una carta encontrada va **debajo** de su
   marco, se aceptan códigos de expansión con una letra mal, se encuentran las reimpresiones de
