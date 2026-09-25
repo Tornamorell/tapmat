@@ -85,9 +85,12 @@ compartidas, 7 días de precios guardados y 12 días de valor del inventario.
   y 12 bolsillos por página. Hereda los filtros y el progreso, pero **no el orden**: las páginas
   van siempre por número impreso, que es lo que hace que se parezca al álbum, y por eso el
   selector «Ordenar» no sale en esta vista.
-  - **Normal y reverse holo comparten bolsillo**, apiladas, con la cuenta de cada acabado
-    debajo: así se ve que tienes la estándar y te falta la reverse holo. Para eso la consulta
-    desglosa las copias por acabado (`ownedByPrinting` las suma todas).
+  - **Normal y reverse holo comparten bolsillo**, con una ficha por acabado debajo —la reverse
+    holo con la película foil, atenuada si no tienes ninguna—, así que se ve que tienes la
+    estándar y te falta la otra. Para eso la consulta desglosa las copias por acabado
+    (`ownedByPrinting` las suma todas).
+  - **En los bolsillos no hay +**: tapaban la carta y parecían el estado de la carta en vez de
+    acciones. Añadir copias vive en el overlay, sobre la carta grande.
   - **Al tocar una carta se abre en grande**, con `HoloCard`: se inclina hacia el puntero y coge
     la luz. Solo hay una montada a la vez, así que el efecto que sería excesivo en 18 bolsillos
     aquí no cuesta nada.

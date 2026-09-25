@@ -23,6 +23,7 @@ export function OwnedCardTile({
   owned,
   wanted,
   withCollection = true,
+  quickAdd = true,
   onOpen,
 }: {
   printingId: string;
@@ -37,6 +38,11 @@ export function OwnedCardTile({
   /** On a collection's page: copies wanted, shown as "owned/wanted" until complete. */
   wanted?: number;
   withCollection?: boolean;
+  /**
+   * The + that adds a copy (one per finish). Off in the album, where two of them fought with the
+   * card and read as its state rather than as actions: there you add from the overlay.
+   */
+  quickAdd?: boolean;
   /** The album opens the card in an overlay instead of leaving the page for its own. */
   onOpen?: () => void;
 }) {
@@ -88,27 +94,31 @@ export function OwnedCardTile({
           {wanted == null ? `×${shown}` : wanted > 1 || !complete ? `${shown}/${wanted}` : "✓"}
         </span>
       )}
-      <AddCopyButton
-        printingId={printingId}
-        finishes={finishes}
-        name={name}
-        withCollection={withCollection}
-        onStart={() => addShown(1)}
-        finish={both ? "nonfoil" : undefined}
-        finishName={both ? config?.finishLabels.nonfoil : undefined}
-      />
-      {both && quick && (
-        <AddCopyButton
-          printingId={printingId}
-          finishes={finishes}
-          name={name}
-          withCollection={withCollection}
-          onStart={() => addShown(1)}
-          finish={quick}
-          finishName={config?.finishLabels[quick]}
-          look="foil"
-          className="top-11"
-        />
+      {quickAdd && (
+        <>
+          <AddCopyButton
+            printingId={printingId}
+            finishes={finishes}
+            name={name}
+            withCollection={withCollection}
+            onStart={() => addShown(1)}
+            finish={both ? "nonfoil" : undefined}
+            finishName={both ? config?.finishLabels.nonfoil : undefined}
+          />
+          {both && quick && (
+            <AddCopyButton
+              printingId={printingId}
+              finishes={finishes}
+              name={name}
+              withCollection={withCollection}
+              onStart={() => addShown(1)}
+              finish={quick}
+              finishName={config?.finishLabels[quick]}
+              look="foil"
+              className="top-11"
+            />
+          )}
+        </>
       )}
     </div>
   );

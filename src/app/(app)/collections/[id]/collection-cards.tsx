@@ -26,7 +26,8 @@ import { CollectionPicker, type CollectionOption } from "@/components/collection
 import { HoloCard } from "@/components/holo-card";
 import { OwnedCardTile } from "@/components/owned-card-tile";
 import { RarityMark } from "@/components/rarity-mark";
-import { Button } from "@/components/ui/button";
+import { AddCopyButton } from "@/components/add-copy-button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -238,45 +239,47 @@ function SortablePocket({
       {...attributes}
       {...listeners}
     >
-      <div className="relative">
-        {/* Both finishes share a pocket, as they would in the real album. */}
-        {second && (
-          <span
-            className="bg-muted absolute inset-0 -z-10 translate-x-1.5 translate-y-1.5 rounded-lg border"
-            aria-hidden
-          />
-        )}
-        <OwnedCardTile
-          printingId={card.id}
-          name={card.name}
-          number={card.collectorNumber}
-          imageSmall={card.imageSmall}
-          finishes={card.finishes}
-          game={card.game}
-          owned={card.owned}
-          wanted={card.wanted}
-          withCollection={false}
-          onOpen={() => onOpen(card)}
-        />
-      </div>
+      {/* No + here: a pocket is for looking, and two of them fought with the card. Adding a
+          copy lives in the overlay you get by tapping it. */}
+      <OwnedCardTile
+        printingId={card.id}
+        name={card.name}
+        number={card.collectorNumber}
+        imageSmall={card.imageSmall}
+        finishes={card.finishes}
+        game={card.game}
+        owned={card.owned}
+        wanted={card.wanted}
+        withCollection={false}
+        quickAdd={false}
+        onOpen={() => onOpen(card)}
+      />
       <p className="text-muted-foreground truncate text-[11px]" title={card.name}>
         #{card.collectorNumber} {card.name}
       </p>
       {second && (
-        <p className="flex gap-2 text-[10px]">
-          <FinishCount label={finishLabel(card.game, "nonfoil")} n={card.ownedNonfoil} />
-          <FinishCount label={finishLabel(card.game, second)} n={card.ownedFoil} />
+        <p className="flex flex-wrap gap-1">
+          <FinishChip label={finishLabel(card.game, "nonfoil")} n={card.ownedNonfoil} />
+          <FinishChip label={finishLabel(card.game, second)} n={card.ownedFoil} foil />
         </p>
       )}
     </li>
   );
 }
 
-/** Copies of one finish in a pocket, dimmed when you have none: the missing one is visible. */
-function FinishCount({ label, n }: { label: string; n: number }) {
+/**
+ * One finish of a card you may own: the reverse holo wears the foil film itself, which is how
+ * this app says "foil" everywhere else (docs/design.md), so the two slots read as two cards in
+ * the pocket rather than as two words. Faded to almost nothing when you have none of it.
+ */
+function FinishChip({ label, n, foil }: { label: string; n: number; foil?: boolean }) {
   return (
     <span
-      className={cn("truncate", n > 0 ? "text-foreground" : "text-muted-foreground/60")}
+      className={cn(
+        "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] leading-none",
+        foil ? "foil-button text-[#1b1630]" : "bg-muted text-foreground",
+        n === 0 && "opacity-40",
+      )}
       title={label}
     >
       {label.split(" ")[0]} {n > 0 ? `×${n}` : "—"}
@@ -300,30 +303,59 @@ function CardOverlay({ card, onClose }: { card: CollectionCard; onClose: () => v
             {card.setName && ` · ${card.setName}`}
           </DialogDescription>
         </DialogHeader>
-        <HoloCard
-          src={card.imageNormal ?? card.imageSmall}
-          alt={card.name}
-          foil={!card.finishes.includes("nonfoil")}
-          label={`#${card.collectorNumber}`}
-        />
-        <div className="space-y-1 text-sm">
-          {second ? (
-            <p>
-              {finishLabel(card.game, "nonfoil")}: <strong>{card.ownedNonfoil}</strong> ·{" "}
-              {finishLabel(card.game, second)}: <strong>{card.ownedFoil}</strong>
-            </p>
-          ) : (
-            <p>
-              Tienes <strong>{formatInt(card.owned)}</strong> de {formatInt(card.wanted)}
-            </p>
+        {/* The card is the whole point of this dialog: centred, alone, with the + for each
+            finish on it — this is where adding a copy went when the pockets lost theirs. */}
+        <div className="relative mx-auto w-fit">
+          <HoloCard
+            src={card.imageNormal ?? card.imageSmall}
+            alt={card.name}
+            foil={!card.finishes.includes("nonfoil")}
+            label={`#${card.collectorNumber}`}
+          />
+          <AddCopyButton
+            printingId={card.id}
+            finishes={card.finishes}
+            name={card.name}
+            withCollection={false}
+            finish={second ? "nonfoil" : undefined}
+            finishName={second ? finishLabel(card.game, "nonfoil") : undefined}
+          />
+          {second && (
+            <AddCopyButton
+              printingId={card.id}
+              finishes={card.finishes}
+              name={card.name}
+              withCollection={false}
+              finish={second}
+              finishName={finishLabel(card.game, second)}
+              look="foil"
+              className="top-11"
+            />
           )}
-          <p className="text-muted-foreground tabular-nums">{formatEur(card.priceEur)}</p>
         </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {second ? (
+            <span className="flex flex-wrap gap-1">
+              <FinishChip label={finishLabel(card.game, "nonfoil")} n={card.ownedNonfoil} />
+              <FinishChip label={finishLabel(card.game, second)} n={card.ownedFoil} foil />
+            </span>
+          ) : (
+            <span className="text-sm">
+              Tienes <strong>{formatInt(card.owned)}</strong> de {formatInt(card.wanted)}
+            </span>
+          )}
+          {/* Gold is money in this app, and this is the only number here that is. */}
+          <span className="display text-primary text-lg font-bold tabular-nums">
+            {formatEur(card.priceEur)}
+          </span>
+        </div>
+
         <DialogFooter>
-          <Link href={`/cards/${card.id}`} className="text-sm underline">
+          <Link href={`/cards/${card.id}`} className={buttonVariants({ variant: "outline" })}>
             Ver la ficha
           </Link>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="ghost" onClick={onClose}>
             Cerrar
           </Button>
         </DialogFooter>

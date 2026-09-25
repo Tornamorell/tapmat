@@ -22,26 +22,26 @@ porque lo veía plano e impersonal. Es provisional como todo lo demás (ver D22 
 
 ## Paleta (modo oscuro, `globals.css`)
 
-| Token | Hex | Uso |
-| --- | --- | --- |
-| `--background` (tapete) | `#16142B` | Fondo |
-| `--card` (funda) | `#201D3A` | Paneles, tablas, fichas |
-| `--border` | `#322E55` | Bordes |
-| `--foreground` (cartulina) | `#ECE8F7` | Texto |
-| `--muted-foreground` | `#9C96BF` | Texto secundario |
-| `--primary` / `--gold` | `#E9B949` | Dinero, acciones principales, pestaña activa, foco |
-| `--foil` | Degradado cian → violeta → rosa → oro | Película foil |
-| `--rarity-*` | common `#A9A4C7`, uncommon `#A8C8DC`, rare `#E9B949`, mythic `#F0703C`, special `#B98BF0` | `<RarityMark>` |
+| Token                      | Hex                                                                                       | Uso                                                |
+| -------------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `--background` (tapete)    | `#16142B`                                                                                 | Fondo                                              |
+| `--card` (funda)           | `#201D3A`                                                                                 | Paneles, tablas, fichas                            |
+| `--border`                 | `#322E55`                                                                                 | Bordes                                             |
+| `--foreground` (cartulina) | `#ECE8F7`                                                                                 | Texto                                              |
+| `--muted-foreground`       | `#9C96BF`                                                                                 | Texto secundario                                   |
+| `--primary` / `--gold`     | `#E9B949`                                                                                 | Dinero, acciones principales, pestaña activa, foco |
+| `--foil`                   | Degradado cian → violeta → rosa → oro                                                     | Película foil                                      |
+| `--rarity-*`               | common `#A9A4C7`, uncommon `#A8C8DC`, rare `#E9B949`, mythic `#F0703C`, special `#B98BF0` | `<RarityMark>`                                     |
 
 ### Gráficas
 
 Siguen las especificaciones de la skill `dataviz`. Los colores se validan con su script
 (`validate_palette.js --mode dark --surface "#201d3a"`).
 
-| Token | Hex | Uso |
-| --- | --- | --- |
-| `--chart-1` | `#BC8A26` | Línea del valor y del precio normal: el oro, un paso más oscuro que el del texto |
-| `--chart-2` | `#9379D7` | Línea del precio foil: el violeta del foil, un paso más oscuro |
+| Token               | Hex                   | Uso                                                                                |
+| ------------------- | --------------------- | ---------------------------------------------------------------------------------- |
+| `--chart-1`         | `#BC8A26`             | Línea del valor y del precio normal: el oro, un paso más oscuro que el del texto   |
+| `--chart-2`         | `#9379D7`             | Línea del precio foil: el violeta del foil, un paso más oscuro                     |
 | `--gain` / `--loss` | `#5FD39A` / `#F07167` | Subidas y bajadas. Siempre con flecha y signo (`<Delta>`), nunca solo con el color |
 
 Los oros del texto (`#E9B949`) y el violeta del foil son demasiado claros para una línea sobre
@@ -89,6 +89,13 @@ siendo los de shadcn por si algún día se añade un selector de tema.
     «Reverse holo» (`quickAddFinish` en `games.ts`, 2026-09-15).
   - Cada uno dice qué acabado añade, en vez del recordado: si no, con «Foil» por defecto los dos
     harían lo mismo. Es foil de verdad, así que el iridiscente no es de adorno.
+  - **Excepción: en la vista «Álbum» no sale ningún +** (`quickAdd={false}`, 2026-09-25). En un
+    bolsillo los dos botones tapaban la carta y se leían como si fueran el estado de la carta, no
+    acciones. Ahí el bolsillo solo se mira, y añadir copias vive en el overlay que se abre al
+    tocarla, con los dos + sobre la carta grande.
+  - Los dos acabados de un bolsillo se dicen con dos fichas debajo, la reverse holo con la
+    película foil (`.foil-button`) y atenuada cuando no tienes ninguna. Antes era una carta
+    desplazada por detrás, que con `-z-10` quedaba tapada por el fondo del panel y no se veía.
 - `src/lib/use-stepped-value.ts` (`useSteppedValue`): los −/+ que guarda el servidor (copias en
   Mis cartas, copias queridas en una colección, copias en un mazo) funcionan igual.
   - El número cambia al instante, se atenúa mientras se guarda y vuelve atrás si falla.
@@ -128,7 +135,7 @@ siendo los de shadcn por si algún día se añade un selector de tema.
 - `src/components/rarity-mark.tsx` y `rarityTier()` en `src/lib/games.ts`: rombo del color de la
   rareza.
 - `src/components/logo.tsx`: el logo de **Tapmat**, **«Carta girada»** (D38).
-  - Una carta dorada girada, como en el *tap* de Magic, sobre su zona del tapete: el recuadro
+  - Una carta dorada girada, como en el _tap_ de Magic, sobre su zona del tapete: el recuadro
     discontinuo que llevan los tapetes para marcar dónde va cada carta. Dibuja las dos mitades
     del nombre. La carta lleva el rombo de rareza de la app.
   - A 16 px el recuadro se pierde y queda la carta dorada inclinada, que se sigue reconociendo.
