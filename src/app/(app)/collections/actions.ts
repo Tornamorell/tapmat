@@ -247,8 +247,12 @@ export async function reorderCollectionCards(collectionId: string, orderedCardId
   await ownedCollection(user.id, collectionId);
   const ids = z.array(z.uuid()).max(5000).parse(orderedCardIds);
   if (!ids.length) return;
+  // Both casts matter. A bound parameter inside a VALUES list has nothing to infer its type
+  // from, so Postgres calls it text and the update fails with "column position is of type
+  // integer but expression is of type text". Literals wouldn't need this, which is exactly how
+  // it got past a test written with literals instead of parameters (2026-09-25).
   const values = sql.join(
-    ids.map((id, i) => sql`(${id}::uuid, ${i})`),
+    ids.map((id, i) => sql`(${id}::uuid, ${i}::int)`),
     sql`, `,
   );
   await db.execute(sql`
