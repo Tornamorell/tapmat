@@ -6,6 +6,7 @@ import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { CardThumb } from "@/components/card-thumb";
 import { CollectionPicker, type CollectionOption } from "@/components/collection-picker";
+import { HoloCard } from "@/components/holo-card";
 import { OwnedCardTile } from "@/components/owned-card-tile";
 import { RarityMark } from "@/components/rarity-mark";
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { formatEur, formatInt } from "@/lib/format";
-import { gameById, rarityLabel } from "@/lib/games";
+import { finishLabel, gameById, rarityLabel } from "@/lib/games";
 import type { CollectionCard } from "@/lib/queries/collections";
 import { cn } from "@/lib/utils";
 import { moveCollectionCards, removeCardsFromCollection } from "../actions";
@@ -51,6 +52,8 @@ function BinderPages({ cards }: { cards: CollectionCard[] }) {
   );
   const [perPage, setPerPage] = useState<Pockets>(9);
   const [spread, setSpread] = useState(0);
+  // The pocket you tapped, shown big. One at a time, so the tilt costs nothing here.
+  const [open, setOpen] = useState<CollectionCard | null>(null);
   const pageCount = Math.max(1, Math.ceil(ordered.length / perPage));
   const spreadCount = Math.ceil(pageCount / 2);
   // Changing the page size can leave the spread past the end.
@@ -105,21 +108,32 @@ function BinderPages({ cards }: { cards: CollectionCard[] }) {
             number={p + 1}
             perPage={perPage}
             cards={ordered.slice(p * perPage, (p + 1) * perPage)}
+            onOpen={setOpen}
           />
         ))}
       </div>
+
+      {open && <CardOverlay card={open} onClose={() => setOpen(null)} />}
     </div>
   );
+}
+
+/** Whether this card comes in the standard finish and in the game's second one (reverse holo). */
+function bothFinishes(card: CollectionCard) {
+  const quick = gameById(card.game)?.quickAddFinish;
+  return quick && card.finishes.includes(quick) && card.finishes.includes("nonfoil") ? quick : null;
 }
 
 function BinderPage({
   number,
   cards,
   perPage,
+  onOpen,
 }: {
   number: number;
   cards: CollectionCard[];
   perPage: number;
+  onOpen: (card: CollectionCard) => void;
 }) {
   // The last page is rarely full: draw the empty pockets so it still reads as a page.
   const empty = Math.max(0, perPage - cards.length);
@@ -127,24 +141,43 @@ function BinderPage({
     <section className="bg-card space-y-2 rounded-xl border p-3" aria-label={`Página ${number}`}>
       <p className="text-muted-foreground text-xs">Página {number}</p>
       <ul className="grid grid-cols-3 gap-2">
-        {cards.map((c) => (
-          <li key={c.id} className="space-y-1">
-            <OwnedCardTile
-              printingId={c.id}
-              name={c.name}
-              number={c.collectorNumber}
-              imageSmall={c.imageSmall}
-              finishes={c.finishes}
-              game={c.game}
-              owned={c.owned}
-              wanted={c.wanted}
-              withCollection={false}
-            />
-            <p className="text-muted-foreground truncate text-[11px]" title={c.name}>
-              #{c.collectorNumber} {c.name}
-            </p>
-          </li>
-        ))}
+        {cards.map((c) => {
+          const second = bothFinishes(c);
+          return (
+            <li key={c.id} className="space-y-1">
+              <div className="relative">
+                {/* Both finishes share a pocket, as they would in the real album. */}
+                {second && (
+                  <span
+                    className="bg-muted absolute inset-0 -z-10 translate-x-1.5 translate-y-1.5 rounded-lg border"
+                    aria-hidden
+                  />
+                )}
+                <OwnedCardTile
+                  printingId={c.id}
+                  name={c.name}
+                  number={c.collectorNumber}
+                  imageSmall={c.imageSmall}
+                  finishes={c.finishes}
+                  game={c.game}
+                  owned={c.owned}
+                  wanted={c.wanted}
+                  withCollection={false}
+                  onOpen={() => onOpen(c)}
+                />
+              </div>
+              <p className="text-muted-foreground truncate text-[11px]" title={c.name}>
+                #{c.collectorNumber} {c.name}
+              </p>
+              {second && (
+                <p className="flex gap-2 text-[10px]">
+                  <FinishCount label={finishLabel(c.game, "nonfoil")} n={c.ownedNonfoil} />
+                  <FinishCount label={finishLabel(c.game, second)} n={c.ownedFoil} />
+                </p>
+              )}
+            </li>
+          );
+        })}
         {Array.from({ length: empty }, (_, i) => (
           <li
             key={`empty-${i}`}
@@ -153,6 +186,66 @@ function BinderPage({
         ))}
       </ul>
     </section>
+  );
+}
+
+/** Copies of one finish in a pocket, dimmed when you have none: the missing one is visible. */
+function FinishCount({ label, n }: { label: string; n: number }) {
+  return (
+    <span
+      className={cn("truncate", n > 0 ? "text-foreground" : "text-muted-foreground/60")}
+      title={label}
+    >
+      {label.split(" ")[0]} {n > 0 ? `×${n}` : "—"}
+    </span>
+  );
+}
+
+/**
+ * A pocket opened: the card big, tilting towards the pointer and catching the light (HoloCard).
+ * Only one is ever mounted, so the effect that would be too much on eighteen pockets is fine.
+ */
+function CardOverlay({ card, onClose }: { card: CollectionCard; onClose: () => void }) {
+  const second = bothFinishes(card);
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{card.name}</DialogTitle>
+          <DialogDescription>
+            {card.setCode.toUpperCase()} #{card.collectorNumber}
+            {card.setName && ` · ${card.setName}`}
+          </DialogDescription>
+        </DialogHeader>
+        <HoloCard
+          src={card.imageNormal ?? card.imageSmall}
+          alt={card.name}
+          foil={!card.finishes.includes("nonfoil")}
+          label={`#${card.collectorNumber}`}
+        />
+        <div className="space-y-1 text-sm">
+          {second ? (
+            <p>
+              {finishLabel(card.game, "nonfoil")}: <strong>{card.ownedNonfoil}</strong> ·{" "}
+              {finishLabel(card.game, second)}: <strong>{card.ownedFoil}</strong>
+            </p>
+          ) : (
+            <p>
+              Tienes <strong>{formatInt(card.owned)}</strong> de {formatInt(card.wanted)}
+            </p>
+          )}
+          <p className="text-muted-foreground tabular-nums">{formatEur(card.priceEur)}</p>
+        </div>
+        <DialogFooter>
+          <Link href={`/cards/${card.id}`} className="text-sm underline">
+            Ver la ficha
+          </Link>
+          <Button variant="outline" onClick={onClose}>
+            Cerrar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

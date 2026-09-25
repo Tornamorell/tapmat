@@ -23,6 +23,7 @@ export function OwnedCardTile({
   owned,
   wanted,
   withCollection = true,
+  onOpen,
 }: {
   printingId: string;
   name: string;
@@ -36,6 +37,8 @@ export function OwnedCardTile({
   /** On a collection's page: copies wanted, shown as "owned/wanted" until complete. */
   wanted?: number;
   withCollection?: boolean;
+  /** The album opens the card in an overlay instead of leaving the page for its own. */
+  onOpen?: () => void;
 }) {
   const [shown, addShown] = useOptimistic(owned, (current, added: number) => current + added);
   const complete = wanted == null ? shown > 0 : shown >= wanted;
@@ -44,25 +47,42 @@ export function OwnedCardTile({
   // Both finishes: each + says which it adds, so the remembered finish doesn't make them the same.
   const both = !!quick && finishes.includes(quick) && finishes.includes("nonfoil");
 
+  const thumb = (
+    <CardThumb
+      src={imageSmall}
+      alt={name}
+      label={number && `#${number}`}
+      size="md"
+      className={cn(
+        "w-full! transition-[filter,opacity] duration-300",
+        shown === 0 && "opacity-55 grayscale-[0.75]",
+      )}
+    />
+  );
+
   return (
     <div className="relative">
-      <Link href={`/cards/${printingId}`} className="block">
-        <CardThumb
-          src={imageSmall}
-          alt={name}
-          label={number && `#${number}`}
-          size="md"
-          className={cn(
-            "w-full! transition-[filter,opacity] duration-300",
-            shown === 0 && "opacity-55 grayscale-[0.75]",
-          )}
-        />
-      </Link>
+      {onOpen ? (
+        <button
+          type="button"
+          onClick={onOpen}
+          className="block w-full cursor-zoom-in"
+          aria-label={`Ver ${name} en grande`}
+        >
+          {thumb}
+        </button>
+      ) : (
+        <Link href={`/cards/${printingId}`} className="block">
+          {thumb}
+        </Link>
+      )}
       {shown > 0 && (
         <span
           className={cn(
-            "absolute top-1.5 left-1.5 rounded-md px-1.5 py-0.5 text-xs font-semibold shadow-sm tabular-nums",
-            complete ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground",
+            "absolute top-1.5 left-1.5 rounded-md px-1.5 py-0.5 text-xs font-semibold tabular-nums shadow-sm",
+            complete
+              ? "bg-primary text-primary-foreground"
+              : "bg-secondary text-secondary-foreground",
           )}
         >
           {wanted == null ? `×${shown}` : wanted > 1 || !complete ? `${shown}/${wanted}` : "✓"}

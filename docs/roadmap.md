@@ -82,8 +82,15 @@ compartidas, 7 días de precios guardados y 12 días de valor del inventario.
 - **Vista «Álbum»** en las colecciones: una tercera vista, junto a Cuadrícula y Lista, que enseña
   la colección como el binder físico — bolsillos de tres en tres, dos páginas enfrentadas en
   pantalla ancha y una en el móvil, con los bolsillos vacíos dibujados al final. Se elige entre 9
-  y 12 bolsillos por página. Hereda los filtros, el orden y el progreso de la colección, así que
-  con el orden «Edición» las páginas salen en el orden del álbum.
+  y 12 bolsillos por página. Hereda los filtros y el progreso, pero **no el orden**: las páginas
+  van siempre por número impreso, que es lo que hace que se parezca al álbum, y por eso el
+  selector «Ordenar» no sale en esta vista.
+  - **Normal y reverse holo comparten bolsillo**, apiladas, con la cuenta de cada acabado
+    debajo: así se ve que tienes la estándar y te falta la reverse holo. Para eso la consulta
+    desglosa las copias por acabado (`ownedByPrinting` las suma todas).
+  - **Al tocar una carta se abre en grande**, con `HoloCard`: se inclina hacia el puntero y coge
+    la luz. Solo hay una montada a la vez, así que el efecto que sería excesivo en 18 bolsillos
+    aquí no cuesta nada.
 - **Escáner** (todo en `docs/scanner.md`): la franja se lee como texto disperso, la clave de
   votación ya no confunde cartas distintas, la franja de una carta encontrada va **debajo** de su
   marco, se aceptan códigos de expansión con una letra mal, se encuentran las reimpresiones de

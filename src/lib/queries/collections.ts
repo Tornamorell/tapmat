@@ -88,25 +88,43 @@ export type CollectionCard = {
   collectorNumber: string;
   rarity: string | null;
   imageSmall: string | null;
+  /** The bigger image, for the album's overlay. */
+  imageNormal: string | null;
   finishes: string[];
   priceEur: number | null;
   wanted: number;
   owned: number;
+  /** Copies by finish, so a pocket can show the standard and the reverse holo apart. */
+  ownedNonfoil: number;
+  ownedFoil: number;
   addedAt: string;
 };
 
 /** The printings a collection lists, with copies wanted and owned. Check ownership first. */
 export async function listCollectionCards(ownerId: string, collectionId: string) {
   const result = await db.execute<CollectionCard>(sql`
-    with owned as ${ownedByPrinting(ownerId)}
+    with owned as ${ownedByPrinting(ownerId)},
+    by_finish as (
+      select catalog_card_id,
+             sum(quantity) filter (where finish = 'nonfoil')::int as nonfoil,
+             sum(quantity) filter (where finish <> 'nonfoil')::int as foil
+      from items
+      where owner_id = ${ownerId} and catalog_card_id is not null
+      group by catalog_card_id
+    )
     select cat.id, cat.game, cat.name, cat.set_code as "setCode", s.name as "setName",
            cat.collector_number as "collectorNumber", cat.rarity, cat.image_small as "imageSmall",
+           cat.image_normal as "imageNormal",
            cat.finishes, cat.price_eur::float8 as "priceEur",
-           cc.quantity as wanted, coalesce(o.qty, 0)::int as owned, cc.created_at::text as "addedAt"
+           cc.quantity as wanted, coalesce(o.qty, 0)::int as owned,
+           coalesce(f.nonfoil, 0)::int as "ownedNonfoil",
+           coalesce(f.foil, 0)::int as "ownedFoil",
+           cc.created_at::text as "addedAt"
     from collection_cards cc
     join catalog_cards cat on cat.id = cc.catalog_card_id
     left join sets s on s.game = cat.game and s.code = cat.set_code
     left join owned o on o.catalog_card_id = cc.catalog_card_id
+    left join by_finish f on f.catalog_card_id = cc.catalog_card_id
     where cc.collection_id = ${collectionId}
     order by cc.created_at desc
   `);
