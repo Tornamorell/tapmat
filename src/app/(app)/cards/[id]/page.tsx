@@ -5,7 +5,7 @@ import { z } from "zod";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { ConditionBadge, LanguageFlag } from "@/components/card-attributes";
 import { CardPhotoButton } from "@/components/card-photo-button";
-import { SetIcon } from "@/components/card-thumb";
+import { CardThumb, SetIcon } from "@/components/card-thumb";
 import { HoloCard } from "@/components/holo-card";
 import { ItemActions, QuantityControl, type ActionItem } from "@/components/item-actions";
 import { RarityMark } from "@/components/rarity-mark";
@@ -197,6 +197,17 @@ export default async function CardPage({ params }: PageProps<"/cards/[id]">) {
                     key={s.id}
                     className="bg-card flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg border px-3 py-2"
                   >
+                    {/* These stacks are printings of the same card, not copies of one: the art
+                        is what tells SV03.5 #199 from XY2 #11 at a glance. */}
+                    <Link href={`/cards/${s.printingId}`} className="shrink-0" tabIndex={-1}>
+                      <CardThumb
+                        src={s.imageSmall}
+                        alt=""
+                        size="xs"
+                        label={`#${s.collectorNumber}`}
+                        foil={s.finish !== "nonfoil"}
+                      />
+                    </Link>
                     <div className="min-w-0 flex-1">
                       {s.setCode.toUpperCase()} #{s.collectorNumber},{" "}
                       {finishLabel(printing.game, s.finish)}{" "}

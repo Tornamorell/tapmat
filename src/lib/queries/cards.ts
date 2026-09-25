@@ -85,6 +85,8 @@ export async function getOwnedStacks(ownerId: string, oracleId: string) {
       printingId: catalogCards.id,
       setCode: catalogCards.setCode,
       collectorNumber: catalogCards.collectorNumber,
+      /** Each stack may be a different printing of the card: its own art tells them apart. */
+      imageSmall: catalogCards.imageSmall,
     })
     .from(items)
     .innerJoin(catalogCards, eq(catalogCards.id, items.catalogCardId))
