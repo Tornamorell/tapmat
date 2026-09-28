@@ -36,14 +36,21 @@ Serie Élite (y Paralelas)
 ·17 ELI-POWER Unai Simón ATH *
 ·18 ELI Vinícius RMA
 ·18 ELI-POWER Vinícius RMA *
+
+
+disabled_by_default
+
 check_box
 Deportivo Alavés
+2 faltas
 ·19 Escudo
 ·20 Sivera
-·21
+·21 Adrián Rodríguez (II)
 ·22 Jonny
 ·23 Tenaglia
 ·24 Koski
+1
+·25 BIS Garcés (II)
 ·25 Parada (Baja)
 ·26 Yusi
 ·27 Benavídez
@@ -54,10 +61,17 @@ Deportivo Alavés
 ·32 Denis Suárez
 ·33 Ángel Pérez
 ·34 Abde
+1
+·34 BIS Mariano (II)
 ·35 Toni Martínez
 ·36 Boyé
+
+
+disabled_by_default
+
 check_box
 Athletic Club
+1 faltas
 ·37 Escudo
 ·38 Unai Simón
 ·39 Padilla
@@ -68,6 +82,8 @@ Athletic Club
 ·44 Yuri
 ·45 Ruiz de Galarreta
 ·46 Jauregizar
+1
+·47 BIS Peio Canales (II)
 ·47 Rego
 ·48 Sancet
 ·49 Nico Serrano
@@ -76,8 +92,13 @@ Athletic Club
 ·52 Williams
 ·53 Guruzeta
 ·54 Nico Williams
+
+
+disabled_by_default
+
 check_box
 Club Atlético de Madrid
+2 faltas
 ·55 Escudo
 ·56 Oblak
 ·57 Musso
@@ -86,18 +107,27 @@ Club Atlético de Madrid
 ·60 Pubill
 ·61 Giménez (Baja)
 ·62 Hancko
+1
+·63 BIS Rodri Mendoza (II)
 ·63 Ruggeri (Baja)
 ·64 Koke
 ·65 Barrios
 ·66 Johnny Cardoso
 ·67 Álex Baena
 ·68 Almada (Baja)
+1
+·68 BIS Arnau Ortiz (II)
 ·69 Giuliano
 ·70 Lookman
 ·71 Julián Álvarez
 ·72 Sørloth
+
+
+disabled_by_default
+
 check_box
 FC Barcelona
+3 faltas
 ·73 Escudo
 ·74 Joan García
 ·75 Szczęsny
@@ -106,7 +136,11 @@ FC Barcelona
 ·78 Cubarsí
 ·79 Eric García
 ·80 Araujo (Baja)
+1
+·80 BIS Christensen (II)
 ·81 Balde
+1
+·81 BIS João Cancelo (II)
 ·82 De Jong
 ·83 Marc Bernal
 ·84 Gavi
@@ -115,11 +149,20 @@ FC Barcelona
 ·87 Dani Olmo
 ·88 Raphinha
 ·89 Lamine Yamal
+1
+·90 BIS Abdelkarim (II)
 ·90 Ferran Torres (Baja)
+
+
+disabled_by_default
+
 check_box
 Real Betis Balompié
+2 faltas
 ·91 Escudo
 ·92 Valles
+1
+·93 BIS Diego Conde (II)
 ·93 Pau López (Baja)
 ·94 Aitor Ruibal
 ·95 Bartra
@@ -128,6 +171,8 @@ Real Betis Balompié
 ·98 Valentín Gómez
 ·99 Marc Roca
 ·100 Amrabat (Baja)
+1
+·100 BIS Deossa (II)
 ·101 Fidalgo
 ·102 Pablo Fornals
 ·103 Lo Celso
@@ -136,8 +181,13 @@ Real Betis Balompié
 ·106 Antony
 ·107 Cucho Hermández
 ·108 Abde
+
+
+disabled_by_default
+
 check_box
 RC Celta de Vigo
+1 faltas
 ·109 Escudo
 ·110 Radu
 ·111 Iván Villar
@@ -152,18 +202,29 @@ RC Celta de Vigo
 ·120 Hugo Álvarez
 ·121 Fer López (Baja)
 ·122 Swedberg
+1
+·123 BIS Hugo González (II)
 ·123 Pablo Durán
 ·124 Iago Aspas
 ·125 Borja Iglesias
 ·126 Jutglá
+
+
+disabled_by_default
+
 check_box
 Real Club Deportivo de A Coruña
+3 faltas
 ·127 Escudo
 ·128 Álvaro Fernández
+1
+·129 BIS Leo Román (II)
 ·129 Germán Parreño
 ·130 Adrià Altimira
 ·131 Loureiro
 ·132 Noubi
+1
+·133 BIS Bright Ede (II)
 ·133 Dani Barcia
 ·134 Arnau Comas
 ·135 Quagliata
@@ -171,53 +232,78 @@ Real Club Deportivo de A Coruña
 ·137 Riki
 ·138 Mario Soriano
 ·139 José Ángel
+1
+·140 BIS Asp Jensen (II)
 ·140 Luismi Cruz
 ·141 Mella
 ·142 Yeremay
 ·143 Eddahchouri
 ·144 Nsongo
+
+
+disabled_by_default
+
 check_box
 Elche CF
+1 faltas
 ·145 Escudo
 ·146 Dituro
-·147
-·148
+·147 Iturbe (II)
+·148 Sangaré (II)
 ·149 Chust
 ·150 Bigas
 ·151 Affenbruger(Baja)
+1
+·152 BIS Fede Redondo (II)
 ·152 Pedrosa (Baja)
 ·153 Germán Varela
 ·154 Gonzalo Villar
 ·155 Martim Neto
 ·156 Marc Aguado
-·157
+·157 Josan (II)
 ·158 Morente
-·159
+·159 Ali Houary (II)
 ·160 Diangana
 ·161 Yago Santiago
 ·162 Cepeda
+
+
+disabled_by_default
+
 check_box
 RCD Espanyol
+3 faltas
 ·163 Escudo
 ·164 Dmitrović
 ·165 Fortuño
 ·166 El Hilali
+1
+·167 BIS Núñez (II)
 ·167 Rubén Sánchez (Baja)
 ·168 Riedel
 ·169 Cabrera
+1
+·170 BIS Hinojo (II)
 ·170 Miguel Rubio (Baja)
-·171
+·171 Hartman (II)
 ·172 Urko
 ·173 Pol Lozano
 ·174 Edu Expósito
+1
+·175 BIS Javi Hernández (II)
 ·175 Jofre
 ·176 Dolan
 ·177 Puado
 ·178 Roberto Fernández
 ·179 Kike García
 ·180 Pere Milla
+
+
+disabled_by_default
+
 check_box
 Getafe CF
+1 faltas
 ·181 Escudo
 ·182 David Soria
 ·183 Letáček
@@ -228,36 +314,52 @@ Getafe CF
 ·188 Zaid Romero
 ·189 Davinchi
 ·190 Mario Martín
-·191 Javi Muñoz
-·192
-·193
-·194
+·191 Javi Muñoz (Baja)
+·192 Mangala (II)
+·193 Terrats (II)
+·194 Juanmi (II)
 ·195 Borja Mayoral
-·196 Luis Vázquez
+1
+·196 BIS Ünal (II)
+·196 Luis Vázquez (Baja)
 ·197 Satriano
 ·198 Álex Sancris (Baja)
+
+
+disabled_by_default
+
 check_box
 Levante UD
+2 faltas
 ·199 Escudo
 ·200 Ryan
 ·201 Pablo Campos
 ·202 Toljan
 ·203 Dela
 ·204 Elgezabal (Baja)
-·205
+·205 Mandi (II)
 ·206 Manu Sánchez
 ·207 Oriol Rey
 ·208 Arriaga
-·209
-·210
-·211 Carlos Álvarez
+1
+·208 BIS Dani Requena (II)
+·209 Hugo Sotelo (II)
+·210 Olasagasti (II)
+·211 Carlos Álvarez (Baja)
 ·212 Tunde
 ·213 Brugué
 ·214 Iván Romero
+1
+·215 BIS Musuayi (II)
 ·215 Carlos Espí (Baja)
 ·216 Etta Eyong
+
+
+disabled_by_default
+
 check_box
 Real Madrid CF
+1 faltas
 ·217 Escudo
 ·218 Courtois
 ·219 Lunin
@@ -274,8 +376,14 @@ Real Madrid CF
 ·230 Brahim Díaz
 ·231 Rodrygo
 ·232 Mbappé
+1
+·233 BIS Carlos Espí (II)
 ·233 Gonzalo (Baja)
 ·234 Vinícius
+
+
+disabled_by_default
+
 check_box
 Málaga CF
 ·235 Escudo
@@ -283,10 +391,10 @@ Málaga CF
 ·237 Carlos López
 ·238 Puga
 ·239 Murillo
-·240
+·240 Calero (II)
 ·241 Einar Galilea
 ·242 Rafita
-·243
+·243 Salinas (II)
 ·244 Izan Merino
 ·245 Dani Lorenzo
 ·246 Rafa Rodríguez
@@ -296,6 +404,10 @@ Málaga CF
 ·250 Adrián Niño
 ·251 Joaquín
 ·252 Chupe
+
+
+disabled_by_default
+
 check_box
 CA Osasuna
 ·253 Escudo
@@ -316,14 +428,23 @@ CA Osasuna
 ·268 Kike Barja
 ·269 Raúl García
 ·270 Budimir
+
+
+disabled_by_default
+
 check_box
 Real Racing Club de Santander
+4 faltas
 ·271 Escudo
-·272
+·272 Agirrezabala (II)
 ·273 Eriksson
 ·274 Mantilla
+1
+·275 BIS Pablo Ramón (II)
 ·275 Sangalli (Baja)
 ·276 Facu González
+1
+·277 BIS Pedro Felipe (II)
 ·277 Javi Castro (Baja)
 ·278 Manu Herrando
 ·279 Jorge Salinas
@@ -331,13 +452,22 @@ Real Racing Club de Santander
 ·281 Gustavo Puertas (Baja)
 ·282 Íñigo
 ·283 Aldasoro (Baja)
+1
+·283 BIS Sergio Martínez (Baja) (II)
+1
+·284 BIS Zabiri (II)
 ·284 Suleiman (Baja)
 ·285 Andrés Martín
 ·286 Guliashvili
 ·287 Villalibre
 ·288 Íñigo Vicente
+
+
+disabled_by_default
+
 check_box
 Rayo Vallecano
+1 faltas
 ·289 Escudo
 ·290 Batalla
 ·291 Cárdenas
@@ -346,6 +476,8 @@ Rayo Vallecano
 ·294 Lejeune
 ·295 Nobel Mendy (Baja)
 ·296 Luiz Felipe
+1
+·297 BIS Nteka (II)
 ·297 Pep Chavarría (Baja)
 ·298 Pedro Díaz
 ·299 Pathé Ciss
@@ -356,6 +488,10 @@ Rayo Vallecano
 ·304 De Frutos
 ·305 Camello
 ·306 Alemão
+
+
+disabled_by_default
+
 check_box
 Real Sociedad de Fútbol
 ·307 Escudo
@@ -369,35 +505,53 @@ Real Sociedad de Fútbol
 ·315 Gorrotaxtegi
 ·316 Turrientes
 ·317 Pablo Martín
-·318
+·318 Yangel Herrera (II)
 ·319 Carlos Soler
 ·320 Sučić
 ·321 Barrenetxea
 ·322 Guedes
 ·323 Kubo
 ·324 Oyarzabal
+
+
+disabled_by_default
+
 check_box
 Sevilla FC
+4 faltas
 ·325 Escudo
 ·326 Vlachodimos
-·327
+·327 Fran González (II)
 ·328 Carmona
-·329 Juanlu
+1
+·329 BIS Iglesias (II)
+·329 Juanlu (Baja)
 ·330 Kike Salas
+1
+·331 BIS Sangante (II)
 ·331 Nianzou (Baja)
 ·332 Castrín
 ·333 Suazo
 ·334 Oso (Baja)
 ·335 Agoumé
+1
+·336 BIS Manu Bueno (II)
 ·336 Sow (Baja)
 ·337 Vargas
-·338
+·338 Miguel Sierra (II)
 ·339 Peque
 ·340 Ejuke
 ·341 Akor Adams (Baja)
+1
+·341 BIS Robbie Ure (II)
 ·342 Isaac Romero
+
+
+disabled_by_default
+
 check_box
 Valencia CF
+1 faltas
 ·343 Escudo
 ·344 Dimitrievski
 ·345 Rivero
@@ -405,26 +559,35 @@ Valencia CF
 ·347 Diakhaby
 ·348 Tárrega
 ·349 Copete
+1
+·350 BIS De Haas (II)
 ·350 Cömert (Baja)
 ·351 Gayà
 ·352 Pepelu
 ·353 Guido Rodríguez
 ·354 Javi Guerra
 ·355 Luis Rioja
-·356
+·356 Ugrinić (II)
 ·357 Ramazani (Baja)
 ·358 Hugo Duro
 ·359 Diego López
 ·360 Sadiq
+
+
+disabled_by_default
+
 check_box
 Villarreal CF
+1 faltas
 ·361 Escudo
 ·362 Luiz Júnior
 ·363 Arnau Tenas (Baja)
+1
+·363 BIS Gulácsi (II)
 ·364 Mouriño
 ·365 Pau Navarro
 ·366 Foyth
-·367
+·367 Logan Costa (II)
 ·368 Renato Veiga
 ·369 Sergi Cardona
 ·370 Santi Comesaña
@@ -436,6 +599,10 @@ Villarreal CF
 ·376 Mikautadze
 ·377 Ayoze
 ·378 Gerard Moreno
+
+
+disabled_by_default
+
 check_box
 Serie Enjoy (y Paralelas)
 ·379 ENJ Abde BET
@@ -456,6 +623,10 @@ Serie Enjoy (y Paralelas)
 ·386 ENJ-POWER PéPé VIL *
 ·387 ENJ Vargas SEV
 ·387 ENJ-POWER Vargas SEV *
+
+
+disabled_by_default
+
 check_box
 Serie Zona VIP (y Paralelas)
 ·388 VIP Antony BET
@@ -491,9 +662,13 @@ Serie Zona VIP (y Paralelas)
 ·403 VIP Oblak ATM
 ·403 VIP-POWER Oblak ATM *
 ·404 VIP Pubill ATM
-·404 VIP-POWER Pubill ATM
+·404 VIP-POWER Pubill ATM *
 ·405 VIP Tchouamení RMA
-·405 VIP-POWER Tchouamení ATM
+·405 VIP-POWER Tchouamení ATM *
+
+
+disabled_by_default
+
 check_box
 Serie Master Rookie
 ·406 MRK Abdelkarim BAR
@@ -514,6 +689,10 @@ Serie Master Rookie
 ·421 MRK Tunde LEV
 ·422 MRK Xavi Espart BAR
 ·423 MRK Yeremay DEP
+
+
+disabled_by_default
+
 check_box
 Serie Stars On 25
 ·424 STARS MGK 25 Aniversario *
@@ -543,6 +722,95 @@ Serie Stars On 25
 ·448 STARS Oyarzabal RSO *
 ·449 STARS Lamine Yamal BAR *
 ·450 STARS Mbappé RMA *
+
+
+disabled_by_default
+
+check_box
+Nuevos Fichajes
+39 faltas
+1
+·451 NFI Cucurella RMA (II)
+1
+·452 NFI Amatucci DEP (II)
+1
+·453 NFI Sato VAL (II)
+1
+·454 NFI Calatrava ESP (II)
+1
+·455 NFI Fran García BET (II)
+1
+·456 NFI Mikel Rodríguez ALA (II)
+1
+·457 NFI Sazonov GET (II)
+1
+·458 NFI Juan Cruz MAL (II)
+1
+·459 NFI Grimaldo ATM (II)
+1
+·460 NFI Canales RAC (II)
+1
+·461 NFI Guridi SEV (II)
+1
+·462 NFI Mojica GET (II)
+1
+·463 NFI Gijselhart DEP (II)
+1
+·464 NFI Konaté RMA (II)
+1
+·465 NFI Fer Niño ELC (II)
+1
+·466 NFI Carlos Romero VIL (II)
+1
+·467 NFI Dubasin OSA (II)
+1
+·468 NFI Gordon BAR (II)
+1
+·469 NFI Hjulmand ATM (II)
+1
+·470 NFI Bardell LEV (II)
+1
+·471 NFI Angeliño DEP (II)
+1
+·472 NFI Dumfries RMA (II)
+1
+·473 NFI Javi Morcillo ELC (II)
+1
+·474 NFI Andrés García GET (II)
+1
+·475 NFI Valentini ALA (II)
+1
+·476 NFI Drkušić ESP (II)
+1
+·477 NFI Julio Díaz SEV (II)
+1
+·478 NFI Diomande RMA (II)
+1
+·479 NFI Francho GET (II)
+1
+·480 NFI Buonanotte ELC (II)
+1
+·481 NFI Iván Martín RAC (II)
+1
+·482 NFI Moscardó ESP (II)
+1
+·483 NFI Febas CEL (II)
+1
+·484 NFI Facundo Bernal BET (II)
+1
+·485 NFI Aubameyang DEP (II)
+1
+·486 NFI Kang-in Lee ATM (II)
+1
+·487 NFI Dieng VAL (II)
+1
+·488 NFI Bernardo Silva RMA (II)
+1
+·489 NFI Adeyemi BAR (II)
+
+
+disabled_by_default
+
 check_box
 Serie Special One Black
 ·1 SPECIAL ONE BLACK Nico Williams ATH *
@@ -554,20 +822,54 @@ Serie Special One Black
 ·7 SPECIAL ONE BLACK Vinícius RMA *
 ·8 SPECIAL ONE BLACK Oyarzabal RSO *
 ·9 SPECIAL ONE BLACK Moleiro VIL *
+
+
+disabled_by_default
+
 check_box
 Serie Special One Gold
 ·1 SPECIAL ONE GOLD Koke ATM *
 ·2 SPECIAL ONE GOLD Lamine Yamal BAR *
 ·3 SPECIAL ONE GOLD Mbappé RMA *
+
+
+disabled_by_default
+
+check_box
+Índices
+2 faltas
+1
+·Trading Cards Editados 2ª Edición (Checklist Cartas BIS) (1) (II)
+1
+·Trading Cards Editados 2ª Edición (Checklist Nuevos Fichajes) (y 2) (II)
+
+
+disabled_by_default
+
 check_box
 Ediciones Limitadas
-·EDL 01 Víctor Muñoz OSA - Starter Pack
-·EDL 02 Lamine Yamal BAR- Starter Pack
-·EDL 03 Mbappé RMA - Starter Pack
+3 faltas
+·EDL 01 Víctor Muñoz OSA - Starter Pack *
+·EDL 02 Lamine Yamal BAR- Starter Pack *
+·EDL 03 Mbappé RMA - Starter Pack *
+1
+·EDL 04 Kang-in Lee ATM (Top Fichaje) Jugón nº234 *
+1
+·EDL 05 Adeyemi BAR (Top Fichaje) Jugón nº234 *
+1
+·EDL 06 Canales RAC (Top Fichaje) Jugón nº234 *
+
+
+disabled_by_default
+
 check_box
 Just 25
 ·1 JUST 25 - CRISTIANO RONALDO RMA *
 ·2 JUST 25 - CRISTIANO MESSI BAR *
+
+
+disabled_by_default
+
 check_box
 Box Premium 25 Aniversario
 ·408 MRK-POWER Carlos Espí LEV (BOX/LATA) *
@@ -605,6 +907,10 @@ Box Premium 25 Aniversario
 ·SPECIAL ONE CHAMPIONS BAR (BOX/LATA) *
 ·SPECIAL ONE CHAMPIONS RMA (BOX/LATA) *
 ·SPECIAL ONE CHAMPIONS VAL (BOX/LATA) *
+
+
+disabled_by_default
+
 check_box
 Autógrafo Original
 ·AO 01 CARD AUTÓGRAFO ORIGINAL - Sivera ALA *

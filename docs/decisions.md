@@ -552,6 +552,8 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
       número).
   - Los huecos que CromosRepes aún no ha puesto nombre («·21») no se importan: entran al volver
     a importar la lista cuando lo tengan. «(BOX/LATA)» se quita del nombre.
+    - Funcionó tal cual el 2026-09-28: los 20 huecos de la 2026-27 entraron con nombre al releer
+      la lista, y con ellos las 33 BIS y los 39 Nuevos Fichajes de la 2ª edición (549 → 646).
   - La serie es la rareza, con su color.
   - El equipo va en `type_line`, con el código traducido: «RMA» es Real Madrid CF.
   - `(II)` y `(III)` fijan la fecha de salida de la carta.

@@ -11,13 +11,14 @@ Verificado el 2026-09-11 contra `api.scryfall.com` y la documentación.
 `.jsonl.gz` con una carta por línea, servido desde `data.scryfall.io` sin límite de peticiones.
 La respuesta ya no incluye `download_uri`.
 
-| Tipo | Tamaño comprimido | Uso |
-| --- | --- | --- |
-| `default_cards` | ~78 MB | Cada edición en inglés, o en su idioma si solo existe en uno. Es el catálogo y la fuente de precios, y se sincroniza a diario. |
-| `all_cards` | ~393 MB | Todas las ediciones en todos los idiomas. Solo lo usamos para los nombres en español, cada semana. |
-| `oracle_cards`, `unique_artwork`, `rulings`, tags | — | Sin uso por ahora. |
+| Tipo                                              | Tamaño comprimido | Uso                                                                                                                            |
+| ------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `default_cards`                                   | ~78 MB            | Cada edición en inglés, o en su idioma si solo existe en uno. Es el catálogo y la fuente de precios, y se sincroniza a diario. |
+| `all_cards`                                       | ~393 MB           | Todas las ediciones en todos los idiomas. Solo lo usamos para los nombres en español, cada semana.                             |
+| `oracle_cards`, `unique_artwork`, `rulings`, tags | —                 | Sin uso por ahora.                                                                                                             |
 
 **Precios.**
+
 - Cada carta trae `prices` con `eur`, `eur_foil` (Cardmarket), `usd`, `usd_foil`, `usd_etched` y
   `tix`. Son strings o null.
 - No hay `eur_etched`.
@@ -25,6 +26,7 @@ La respuesta ya no incluye `download_uri`.
 - Scryfall actualiza precios **una vez al día**; el bulk se publica sobre las 09:00 UTC.
 
 **Límites de la API** (no aplican a los ficheros bulk):
+
 - `/cards/search`, `/cards/named`, `/cards/random` y `/cards/collection`: 2 peticiones/s.
 - `/cards/manifest`: 10 peticiones/minuto.
 - El resto: 10 peticiones/s.
@@ -34,12 +36,14 @@ La respuesta ya no incluye `download_uri`.
 **Cabeceras obligatorias:** un `User-Agent` propio (usamos `Tapmat/0.1`) y `Accept`.
 
 **Condiciones de uso:**
+
 - No se puede cobrar por acceder a sus datos.
 - No se puede sugerir que Scryfall avala el proyecto.
 - Las imágenes se sirven desde `cards.scryfall.io` y los iconos de expansión desde
   `svgs.scryfall.io`.
 
 **Datos que conviene conocer:**
+
 - Unos 118 000 objetos en `default_cards`, de los que ~9 400 son solo digitales (descartados).
   Quedan ~108 500 ediciones en papel.
 - Hay 988 expansiones en papel; 528 tienen `parent_set_code` (tokens y promos hijos de una
@@ -54,6 +58,7 @@ La respuesta ya no incluye `download_uri`.
 
 **Datos de juego** (verificado el 2026-09-13 con `/cards/named`; los guarda `oracle_cards`,
 D35):
+
 - `mana_cost` (string, `"{4}{W}{W}{W}"`), `cmc` (número), `colors`, `color_identity`,
   `oracle_text`, `keywords`, `produced_mana`, `layout` (`normal`, `modal_dfc`, `transform`…).
 - `cmc` puede tener decimales (0,5 en cartas Un) y llega a 1 000 000: Gleemax, la única carta
@@ -82,20 +87,22 @@ paralelo sirvió 80 cartas en 4 s sin errores.
 
 **Endpoints que usamos** (todos bajo `https://api.tcgdex.net/v2/{idioma}`):
 
-| Endpoint | Devuelve |
-| --- | --- |
-| `/sets` | Lista breve de expansiones (218 en inglés, 154 en español): id, nombre, logo, símbolo y número de cartas. |
-| `/sets/{id}` | La expansión con `serie {id, name}`, `releaseDate`, `abbreviation.official` (por ejemplo "MEW"), `cardCount` y la lista breve de sus `cards`. |
-| `/cards/{id}` | La carta completa con **precios**. Es la única vía para tener precios: GraphQL no los expone y los listados tampoco. |
-| `/cards` | Lista breve (id y nombre) de todas las cartas del idioma, en una sola petición: 23 548 en inglés y 15 322 en español. Así sacamos los nombres en español. |
-| `/series`, `/rarities` | 21 series y los nombres de las rarezas. |
+| Endpoint               | Devuelve                                                                                                                                                  |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/sets`                | Lista breve de expansiones (218 en inglés, 154 en español): id, nombre, logo, símbolo y número de cartas.                                                 |
+| `/sets/{id}`           | La expansión con `serie {id, name}`, `releaseDate`, `abbreviation.official` (por ejemplo "MEW"), `cardCount` y la lista breve de sus `cards`.             |
+| `/cards/{id}`          | La carta completa con **precios**. Es la única vía para tener precios: GraphQL no los expone y los listados tampoco.                                      |
+| `/cards`               | Lista breve (id y nombre) de todas las cartas del idioma, en una sola petición: 23 548 en inglés y 15 322 en español. Así sacamos los nombres en español. |
+| `/series`, `/rarities` | 21 series y los nombres de las rarezas.                                                                                                                   |
 
 **Ids.**
+
 - El id de una carta es `{set}-{localId}` (por ejemplo `sv03.5-199`) y **es el mismo en todos
   los idiomas**, así que los nombres en español se enlazan por id.
 - `localId` es el número de colección y puede ser "001", "TG30", "SV001" o "!".
 
 **Carta completa.** Los campos que leemos:
+
 - `name`, `rarity` (en inglés y con mayúsculas inconsistentes; los guardamos en minúsculas y
   "Holo Rare" pasa a "rare holo").
 - `category` (Pokemon, Trainer, Energy), `stage`, `types`, `trainerType`, `energyType`.
@@ -106,6 +113,7 @@ paralelo sirvió 80 cartas en 4 s sin errores.
 - `pricing`.
 
 **Precios** (`pricing`):
+
 - `cardmarket` en EUR, con `idProduct`, `avg`, `low`, `trend`, `avg1`, `avg7` y `avg30`, más los
   mismos con sufijo `-holo`.
   - Los campos sin sufijo son la carta tal como se imprimió.
@@ -117,6 +125,7 @@ paralelo sirvió 80 cartas en 4 s sin errores.
 - Cardmarket se actualiza a diario y TCGplayer cada hora.
 
 **Recursos gráficos.**
+
 - Imagen de carta: `{image}/low.webp` (~245 px) y `{image}/high.webp` (~600 px); también hay
   `.png` y `.jpg`.
 - Logo de expansión: `{logo}.webp` y `{logo}.png`. Lo anuncian **todas** las expansiones.
@@ -125,12 +134,11 @@ paralelo sirvió 80 cartas en 4 s sin errores.
   pedir `.png` **cambiando `/univ/` por `/en/`**. Medido el 2026-09-16 sobre las 169 que anuncian
   símbolo:
 
-  | Variante | Con imagen de verdad |
-  | --- | --- |
-  | `/en/…symbol.png` | **148** |
-  | `/univ/…symbol.png` | 1 (me05) |
-  | `/univ/…symbol.webp`, `.jpg`, o sin extensión | 0 |
-
+  | Variante                                      | Con imagen de verdad |
+  | --------------------------------------------- | -------------------- |
+  | `/en/…symbol.png`                             | **148**              |
+  | `/univ/…symbol.png`                           | 1 (me05)             |
+  | `/univ/…symbol.webp`, `.jpg`, o sin extensión | 0                    |
   - Ninguna vale sola: en `/en/` no está me05 y en `/univ/` no están las demás. Y cuatro
     expansiones **no anuncian símbolo** y aun así lo tienen donde el resto (me02, mep, ex5.5,
     exu), así que hay una tercera candidata, construida con la serie y el código. De eso se
@@ -140,6 +148,7 @@ paralelo sirvió 80 cartas en 4 s sin errores.
     tienen por ninguna (promos, trainer kits, las de McDonald's…).
   - Son cuadrados y pequeños (25×25, ~4 KB), así que entran en el hueco de 16 px de `SetIcon`. El
     logo es apaisado (684×158, `logo.webp` de 24–140 KB) y no hace falta como respaldo.
+
 - **Trampa del servidor de recursos** (comprobada el 2026-09-16, y conviene no olvidarla):
   `assets.tcgdex.net` responde **200 con una página HTML de 295 bytes** a cualquier ruta que no
   tenga, incluidas las inventadas (`/univ/me/noexiste/symbol`). De ahí que:
@@ -157,6 +166,7 @@ paralelo sirvió 80 cartas en 4 s sin errores.
   `swsh4.5sv-SV001` y `swsh12tg-TG01`). Las cubren las fotos compartidas (D30).
 
 **Primera sincronización completa** (2026-09-11, 6 peticiones en paralelo):
+
 - 7,5 minutos para 203 expansiones y 21 068 cartas, sin ningún 404.
 - El 94 % de las cartas tiene precio en €, y 7 972 tienen precio de reverse holo.
 - Se guardaron 3 589 nombres en español distintos del inglés; los nombres de Pokémon suelen
@@ -191,9 +201,21 @@ eBay, 130point y Card Ladder, sin API pública. Los álbumes salen de las listas
   `src/lib/albums/cromosrepes.ts` lo convierte en cartas.
 - Ejemplo: Liga 2025-26 Megacracks, 717 fichas con paralelas, BIS, bajas, series especiales,
   ediciones limitadas y autógrafos.
-- Liga 2026-27 Megacracks (lista leída el 2026-09-13, primera edición del 7 de agosto de 2026):
-  549 fichas. Trae huecos de jugador sin nombre todavía («·21») y series nuevas con otros
-  formatos (Enjoy, Stars On 25, Just 25, Box Premium 25 Aniversario).
+- Liga 2026-27 Megacracks (primera edición del 7 de agosto de 2026), con series nuevas de otros
+  formatos (Enjoy, Stars On 25, Just 25, Box Premium 25 Aniversario):
+  - Lista leída el 2026-09-13: **549 fichas**, con huecos de jugador sin nombre todavía («·21»).
+  - Releída el **2026-09-28**: **646 fichas**, sin ningún hueco. CromosRepes había nombrado los
+    20 que faltaban y, sobre todo, había añadido lo de la 2ª edición: 33 fichas BIS repartidas
+    por los equipos, los 39 Nuevos Fichajes (451–489) y la sección «Índices». La descripción de
+    la colección habla de 513 MegaFichas: son las casillas del archivador, sin contar paralelas
+    POWER, variantes BOX/LATA, autógrafos ni listas de control.
+  - **El texto útil es el de la página, no el árbol de accesibilidad.** `get_page_text` devuelve
+    solo el menú en las páginas `/app/` (son una app JS); `document.body.innerText` sí da el
+    texto literal, con sus `check_box` y sus `·`, que es justo lo que espera el parser.
+  - Se empieza a copiar **en el primer `check_box`**. Si se incluye la cabecera, los ocho ítems
+    del grupo «* Colección completa, álbum y sobres» quedan sin sección —su título no va
+    precedido de `check_box`— y el filtro de `toAlbumCards` no los descarta: entrarían como
+    cartas.
 - No hay imágenes. Las cartas llevan un marcador con su número.
 
 ## IA: API de Claude (verificado el 2026-09-12)
