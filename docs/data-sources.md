@@ -201,8 +201,9 @@ eBay, 130point y Card Ladder, sin API pública. Los álbumes salen de las listas
   `src/lib/albums/cromosrepes.ts` lo convierte en cartas.
 - Ejemplo: Liga 2025-26 Megacracks, 717 fichas con paralelas, BIS, bajas, series especiales,
   ediciones limitadas y autógrafos.
-- Liga 2026-27 Megacracks (primera edición del 7 de agosto de 2026), con series nuevas de otros
-  formatos (Enjoy, Stars On 25, Just 25, Box Premium 25 Aniversario):
+- Liga 2026-27 Megacracks (1ª edición el 7 de agosto de 2026 y **2ª el 21 de septiembre**, según
+  el usuario), con series nuevas de otros formatos (Enjoy, Stars On 25, Just 25, Box Premium 25
+  Aniversario):
   - Lista leída el 2026-09-13: **549 fichas**, con huecos de jugador sin nombre todavía («·21»).
   - Releída el **2026-09-28**: **646 fichas**, sin ningún hueco. CromosRepes había nombrado los
     20 que faltaban y, sobre todo, había añadido lo de la 2ª edición: 33 fichas BIS repartidas
@@ -216,6 +217,13 @@ eBay, 130point y Card Ladder, sin API pública. Los álbumes salen de las listas
     del grupo «* Colección completa, álbum y sobres» quedan sin sección —su título no va
     precedido de `check_box`— y el filtro de `toAlbumCards` no los descarta: entrarían como
     cartas.
+  - Importado en Neon el 2026-09-28: 646 fichas en 21 series, 94 de ellas con fecha del 21 de
+    septiembre. Los montones del usuario siguen enganchados: el import casa por número y no
+    borra nada.
+  - **Para importar contra Neon no vale `npm run import:album`**, porque el script arranca con
+    `--env-file-if-exists=.env.local` y eso apunta a la PGlite local. Hay que saltarse el `npm
+run`: `node --env-file=.env.neon.local --import tsx scripts/import-album.ts <álbum>`. Sacar
+    la cadena de conexión a mano con `grep`/`cut` la destroza (sale un `ENOTFOUND base`).
 - No hay imágenes. Las cartas llevan un marcador con su número.
 
 ## IA: API de Claude (verificado el 2026-09-12)
