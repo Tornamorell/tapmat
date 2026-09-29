@@ -317,6 +317,11 @@ export function Scanner({
   // replacing the photo someone else already took.
   const [photoCount, setPhotoCount] = useState(0);
   const [replacing, setReplacing] = useState<ScanMatch | null>(null);
+  // The photo just saved, to look at before moving on: it's what the server stored, straightened
+  // and cropped, not what was in the guide. Cleared when the card leaves the view.
+  const [lastPhoto, setLastPhoto] = useState<{ id: string; name: string; url: string } | null>(
+    null,
+  );
   const [torch, setTorch] = useState({ supported: false, on: false });
   const [pendingCount, setPendingCount] = useState(initialPending);
   const [saving, setSaving] = useState(false);
@@ -614,6 +619,8 @@ export function Scanner({
         s.holdId = null;
         s.photoHoldId = null;
         s.lastTitle = null;
+        // The card is gone: «Repetir» would photograph whatever is in front of the camera now.
+        setLastPhoto(null);
         // The card is gone: if it comes back and is ambiguous again, ask again.
         s.resolvedChoices = "";
         // Another card may be next: the AI gets one go at that one too.
@@ -783,8 +790,13 @@ export function Scanner({
       s.tick++;
       try {
         // Every third read, by the photo; the rest, by the text.
-        const byImage = s.tick % 3 === 0 && (await readByImage(video, card));
-        if (s.tick % 3 === 0) watch.lap("foto");
+        // Not in «Solo fotos»: recognising a card by its shared photo can only work for cards
+        // that already have one, and there the point is photographing the ones that don't. One
+        // read in three was going to a comparison that almost never hits, and reads are the
+        // scarce resource (~680 ms each).
+        const byPhotoHash = !settings.current.defaults.photoMode && s.tick % 3 === 0;
+        const byImage = byPhotoHash && (await readByImage(video, card));
+        if (byPhotoHash) watch.lap("foto");
         if (byImage) {
           if (runningRef.current) setTimeout(tick, TICK_MS);
           return;
@@ -877,7 +889,7 @@ export function Scanner({
       // Forgets a deleted target; on a full divider, tells the user to put the next one in.
       if (!follow(r)) return;
       // A card without a catalog image: the one in the guide becomes everyone's (D30).
-      if (!match.imageSmall) void contributePhoto(match.id);
+      if (!match.imageSmall) void contributePhoto(match);
       beep();
       navigator.vibrate?.(60);
       setChoices(null);
@@ -993,7 +1005,10 @@ export function Scanner({
    * Shares a photo of the card in the guide for a card the catalog has no image for, unless
    * someone already did (D30). Runs in the background: a failure only means no photo yet.
    */
-  async function contributePhoto(catalogCardId: string, replace = false) {
+  // `forCard`, not `card`: the body already has a `card` — the guide's Rect — and shadowing it
+  // made `card.name` resolve to the rectangle.
+  async function contributePhoto(forCard: { id: string; name: string }, replace = false) {
+    const catalogCardId = forCard.id;
     try {
       const video = videoRef.current;
       const card = readRect();
@@ -1008,6 +1023,7 @@ export function Scanner({
       const r = await saveCardPhoto(form);
       if (!r.saved || !r.url) return;
       setPhotoCount((n) => n + 1);
+      setLastPhoto({ id: catalogCardId, name: forCard.name, url: r.url });
       // Recognised by this photo from the next card on (D33).
       if (r.hash) photoHashesRef.current.set(catalogCardId, r.hash);
       const url = r.url;
@@ -1049,7 +1065,7 @@ export function Scanner({
 
     if (!match.imageSmall) {
       setStatus(`Fotografiando «${match.name}»…`);
-      await contributePhoto(match.id);
+      await contributePhoto(match);
       beep();
       navigator.vibrate?.(60);
       return;
@@ -1200,6 +1216,7 @@ export function Scanner({
     readState.current.holdId = null;
     readState.current.photoHoldId = null;
     setPhotoCount(0);
+    setLastPhoto(null);
     toast("Sesión terminada. Las cartas siguen en Mis cartas, donde las añadiste.", {
       action: { label: "Deshacer", onClick: () => setEntries(previous) },
     });
@@ -1260,6 +1277,7 @@ export function Scanner({
         foundStrip: null,
       };
       setLockedStrip(null);
+      setLastPhoto(null);
       setStatus("Encaja la carta en el recuadro, con buena luz.");
       void tick();
     } catch (error) {
@@ -1799,7 +1817,7 @@ export function Scanner({
                   const match = replacing;
                   setReplacing(null);
                   setStatus(`Sustituyendo la foto de «${match.name}»…`);
-                  void contributePhoto(match.id, true);
+                  void contributePhoto(match, true);
                 }}
               >
                 Sustituir
@@ -1815,6 +1833,34 @@ export function Scanner({
                 Saltar
               </Button>
             </div>
+          </div>
+        )}
+
+        {/* What was actually saved, to check before moving on. It's the stored image, already
+            straightened and cropped — not the guide — so what you see is what everyone gets. */}
+        {lastPhoto && !replacing && (
+          <div className="absolute inset-x-3 bottom-28 z-30 flex items-center gap-3 rounded-2xl bg-black/85 p-3 text-sm backdrop-blur">
+            <CardThumb src={lastPhoto.url} alt="" size="sm" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate">
+                Foto guardada de <strong>{lastPhoto.name}</strong>.
+              </p>
+              <p className="text-xs text-white/60">
+                Si ha salido mal, repítela sin mover la carta del recuadro.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                const previous = lastPhoto;
+                setLastPhoto(null);
+                setStatus(`Repitiendo la foto de «${previous.name}»…`);
+                void contributePhoto({ id: previous.id, name: previous.name }, true);
+              }}
+            >
+              Repetir
+            </Button>
           </div>
         )}
 

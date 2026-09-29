@@ -628,6 +628,17 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
       deja y se avisa, porque sustituirla está prohibido más arriba en esta misma decisión; con
       foto compartida, **se pregunta**, que es lo que eligió el usuario frente a sustituir
       siempre o saltar siempre.
+    - **Vista previa con «Repetir»** (2026-09-29): al guardar sale una miniatura de **lo que el
+      servidor ha almacenado** —ya enderezado y recortado—, no de lo que había en el recuadro,
+      así que se ve el resultado real. Se guarda primero y se enseña después, en vez de pedir
+      confirmación: el caso es barrer 646 fichas y un toque por carta lo convertiría en mil
+      toques. Repetir no es destructivo, reusa la sustitución que ya existía. La miniatura dura
+      mientras la carta siga delante: «Repetir» fotografía lo que haya en ese momento.
+    - **En este modo no se reconoce por la huella de la foto** (D33): comparar contra fotos
+      compartidas solo puede acertar en cartas que ya tienen una, y aquí se fotografían justo
+      las que no. Era una lectura de cada tres gastada en una comparación que casi nunca acierta,
+      y las lecturas son el recurso escaso (~680 ms). A cambio, una carta que ya tenga foto
+      compartida se reconoce por el texto, no por la imagen.
 - **Descartado:**
   - Fotos privadas de cada usuario: el usuario prefiere compartirlas.
   - Imágenes de terceros.

@@ -214,6 +214,14 @@ cámara trasera (getUserMedia, se piden 3840×2160; el móvil da lo que puede)
       TCGdex): se deja, porque `saveCardPhoto` no la sustituye nunca (D30) y preguntar sería
       ofrecer algo que no puede pasar. Carta con **foto compartida**: pregunta antes de
       sustituirla, y la lectura queda en pausa mientras decides.
+    - **Vista previa con «Repetir»:** al guardar sale abajo una miniatura de lo que el servidor
+      ha almacenado —enderezado y recortado—, no de lo que había en el recuadro. Se guarda antes
+      de enseñarla, para no meter un toque de confirmación por carta en un barrido de cientos;
+      repetir sustituye, que ya estaba resuelto. Dura mientras la carta siga delante: «Repetir»
+      fotografía lo que haya en ese momento.
+    - **No se reconoce por la huella de la foto** (D33) mientras el modo está encendido: solo
+      acierta en cartas que ya tienen foto compartida, y aquí se fotografían justo las que no.
+      Eran una de cada tres lecturas gastadas en una comparación que casi nunca acierta.
     - Medido con una base de 2025-26: «LAMINE YAMAL», con un 78 % de confianza. Falta
       probarlo con cartas reales de las series especiales, que pueden llevar el nombre en otro
       sitio.
