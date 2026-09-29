@@ -90,6 +90,9 @@ const VOTES_NEEDED = 2; // a read must repeat this many times…
 const VOTE_WINDOW = 6; // …among the last reads (not necessarily consecutive)
 const EMPTY_READS_TO_RELEASE = 3; // reads without text before the same card can be added again
 const STUCK_MS = 6000; // a card in view this long, recognised by nothing: point at the AI (or «Para luego»)
+// «IA automática» fires sooner than the hint appears: the gold ring is for a person deciding
+// what to do, and by the time it makes sense to show it the AI could already have answered.
+const AUTO_AI_MS = 3000;
 const PHOTO_HEIGHT = 560; // px of the «Para luego» photo: enough to read the name and number
 
 const INFO_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/•. ";
@@ -761,11 +764,14 @@ export function Scanner({
     if (settings.current.defaults.findCard) watch.lap("buscar");
     // The «stuck» clock only runs while a card is found in view and no choices are on screen.
     if (!(foundRef.current && foundRef.current.seen >= 2) || s.choicesKey) progress();
-    else if (performance.now() - s.progressAt > STUCK_MS) {
-      setStuck(true);
-      // «IA automática» (D31): the very moment that lights up the button, done for you instead.
-      // identifyWithAi keeps the one-call-per-card flag and the rest of the guards.
-      if (aiEnabled && settings.current.defaults.autoIdentify) void identifyWithAi({ auto: true });
+    else {
+      const stillStuck = performance.now() - s.progressAt;
+      if (stillStuck > STUCK_MS) setStuck(true);
+      // «IA automática» (D31) at half that wait: asking sooner is the point of the mode, and
+      // identifyWithAi's autoTried keeps it to one call per card however often this matches.
+      if (stillStuck > AUTO_AI_MS && aiEnabled && settings.current.defaults.autoIdentify) {
+        void identifyWithAi({ auto: true });
+      }
     }
     // A found card that doesn't read may not be the card: then every other read is of the guide.
     const onCard = located && !(s.empty >= 3 && s.tick % 2 === 1) ? located : null;

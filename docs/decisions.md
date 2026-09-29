@@ -656,11 +656,18 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
   - Coste: unos 1 200 tokens de entrada y 50 de salida, unos 0,003 $ por carta (3 $ cada mil).
   - **«IA automática»** (añadido el 2026-09-23, a petición del usuario): interruptor en los
     ajustes del escáner, **apagado por defecto** y recordado en el móvil. Con él encendido, la
-    carta se manda sola en el mismo momento en que hoy se ilumina el botón —`STUCK_MS`, seis
-    segundos con una carta en el recuadro que nada reconoce—, no en cada fotograma. Una llamada
+    carta se manda sola cuando el lector se atasca con ella, no en cada fotograma. Una llamada
     por carta como mucho (`autoTried`, que se reinicia cuando la carta sale del recuadro), nunca
     encima de una elección ya abierta, y al llegar al límite diario se apaga solo en vez de
     reintentar con cada carta.
+    - **Actualización (2026-09-29):** al usuario le saltaba tarde. Iba atada a `STUCK_MS`, los
+      6 s del aviso del botón, y a eso hay que sumarle las dos lecturas que tarda «Buscar la
+      carta» en localizarla antes de que el reloj empiece siquiera a correr. Ahora tiene su
+      propio umbral, `AUTO_AI_MS` (3 s): el aviso es para que decida una persona, y la llamada
+      automática no tiene por qué esperar a eso. Ninguna llamada de más — `autoTried` sigue
+      limitándolo a una por carta.
+    - Sigue sin saltar si «Buscar la carta» no localiza la carta, porque el reloj solo corre
+      entonces. Queda pendiente decidir si debería.
 - **Descartado** (medido con dos fotos, una base y una Élite Power):
   - Haiku 4.5: más barato (0,0012 $), pero falló las dos series y dijo que la base no era una
     carta.

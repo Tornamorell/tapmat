@@ -231,7 +231,11 @@ cámara trasera (getUserMedia, se piden 3840×2160; el móvil da lo que puede)
       - Si hay una carta a la vista («Buscar la carta») y nada la reconoce en 6 s (`STUCK_MS`),
         el botón se rodea de oro, late y al lado aparece «¿No la reconoce? Pruébala con la IA».
       - Sin IA, se ilumina «Para luego».
-      - **Con «IA automática» encendido** (2026-09-23) ese mismo momento la manda sola, y el
+      - **Con «IA automática» encendido** (2026-09-23) no espera a ese aviso: la manda sola a los
+        **3 s** (`AUTO_AI_MS`, 2026-09-29), la mitad. El anillo dorado sigue en 6 s porque es
+        para que decidas tú, y para entonces la IA ya suele haber contestado. Antes iban atados y
+        la espera se hacía larga: al reloj hay que sumarle las dos lecturas que tarda «Buscar la
+        carta» en localizarla (~1,4 s) antes de que empiece a correr. Y el
         aviso pasa a «No la reconoce: la está mirando la IA». Va **apagado por defecto**, porque
         gastaría sin preguntar: en el mazo de 100 cartas el usuario solo tuvo que pulsarla en 5
         de marco especial. El interruptor es para las tandas en las que se atasca en casi todas,
@@ -552,6 +556,9 @@ En `scanner.tsx`:
 - `VOTES_NEEDED` (2) de `VOTE_WINDOW` (6).
 - `EMPTY_READS_TO_RELEASE` (3).
 - `STUCK_MS` (6000): cuánto tiempo sin reconocer una carta a la vista antes de sugerir la IA.
+- `AUTO_AI_MS` (3000): lo mismo para «IA automática», que no espera al aviso. El reloj de los dos
+  solo corre mientras «Buscar la carta» tiene localizada la carta en dos lecturas seguidas, así
+  que **con ese interruptor apagado la IA automática no llega a saltar nunca**.
 
 En `geometry.ts`:
 
