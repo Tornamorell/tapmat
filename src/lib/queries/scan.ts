@@ -1,6 +1,12 @@
 import { pool } from "@/db/client";
 import { gameById, rarityLabel } from "@/lib/games";
-import { listReprintNumbers, numberVariants, type CollectorLine } from "@/lib/scan/parse";
+import {
+  ALBUM_TITLE_MIN_LETTERS,
+  TITLE_MIN_LETTERS,
+  listReprintNumbers,
+  numberVariants,
+  type CollectorLine,
+} from "@/lib/scan/parse";
 import {
   seriesFirst,
   splitNumber,
@@ -139,6 +145,8 @@ const NAME_SIMILARITY_MIN = 0.45;
 const NAME_MARGIN = 0.1;
 /** In an album, how far below the best match a card's name may be and still be offered. */
 const ALBUM_NAME_WINDOW = 0.35;
+// The minimum length lives in scan/parse.ts, next to parseTitle, which applies the same floor
+// before this is ever called: one definition, not two that can drift apart.
 
 /**
  * Football albums print the name, not a number, on the front, and a player has several cards
@@ -147,14 +155,19 @@ const ALBUM_NAME_WINDOW = 0.35;
  * the best match, or contains what was read, for the user to pick (D29).
  */
 async function lookupInAlbum(q: string, album: { game: string; code: string }) {
-  const { rows } = await pool.query<{ best: number | null }>(
-    `select max(similarity(c.search_name, $1))::float8 as best
+  const { rows } = await pool.query<{ best: number | null; contains: boolean | null }>(
+    `select max(similarity(c.search_name, $1))::float8 as best,
+            bool_or(c.search_name like '%' || $1 || '%') as contains
      from catalog_cards c
      where c.game = $2 and lower(c.set_code) = lower($3)`,
     [q, album.game, album.code],
   );
   const best = rows[0]?.best ?? 0;
-  if (best < NAME_SIMILARITY_MIN) return [];
+  // The filter below offers a card whose name *contains* what was read, so the gate has to let
+  // that through as well. It didn't, and the two rules disagreeing is what made «Oso» (334)
+  // unreachable: it scores 0.444 against «oso (baja)», under the threshold by 0.006, while the
+  // filter would have matched it outright (2026-09-29).
+  if (best < NAME_SIMILARITY_MIN && !rows[0]?.contains) return [];
   return find(
     `c.game = $2 and lower(c.set_code) = lower($3)
      and (similarity(c.search_name, $1) >= $4 or c.search_name like '%' || $1 || '%')`,
@@ -171,8 +184,11 @@ export async function lookupByName(
   fixedSet?: { game: string; code: string } | null,
 ): Promise<ScanMatch[]> {
   const q = normalizeForSearch(name);
-  if (q.replace(/[^a-z]/g, "").length < 4) return [];
-  if (fixedSet?.game === "sports") return lookupInAlbum(q, fixedSet);
+  const letters = q.replace(/[^a-z]/g, "").length;
+  if (fixedSet?.game === "sports") {
+    return letters < ALBUM_TITLE_MIN_LETTERS ? [] : lookupInAlbum(q, fixedSet);
+  }
+  if (letters < TITLE_MIN_LETTERS) return [];
 
   // OCR tends to put a junk word before the title ("and Hoppip", "fi Lightning Bolt", from the
   // Pokémon stage badge or the frame): also try without it, and keep the best match. (Dropping
@@ -215,7 +231,8 @@ export async function lookupByName(
   const [best, second] = [...byOracle.values()].sort((a, b) => b.sim - a.sim || a.len - b.len);
   if (!best) return [];
   const sure = best.sim >= NAME_SIMILARITY_SURE;
-  const clear = best.sim >= NAME_SIMILARITY_MIN && (!second || best.sim - second.sim >= NAME_MARGIN);
+  const clear =
+    best.sim >= NAME_SIMILARITY_MIN && (!second || best.sim - second.sim >= NAME_MARGIN);
   if (!sure && !clear) return [];
 
   // Pokémon prints the mechanic after the name as a logo (ex, V, GX…) that OCR can't read:
@@ -266,7 +283,8 @@ export async function lookupReading(
 ): Promise<ScanMatch[]> {
   const q = normalizeForSearch(reading.name);
   if (q.replace(/[^a-z]/g, "").length < 3) return [];
-  if (fixedSet?.game === "sports") return seriesFirst(await lookupInAlbum(q, fixedSet), reading.series);
+  if (fixedSet?.game === "sports")
+    return seriesFirst(await lookupInAlbum(q, fixedSet), reading.series);
 
   const byName = await lookupByName(reading.name, fixedSet);
   const printed = reading.number ? splitNumber(reading.number) : null;

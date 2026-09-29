@@ -60,6 +60,7 @@ import {
 import {
   canonicalNumber,
   parseCollectorLine,
+  ALBUM_TITLE_MIN_LETTERS,
   parseTitle,
   type CollectorLine,
 } from "@/lib/scan/parse";
@@ -684,7 +685,9 @@ export function Scanner({
     );
     const text = await ocr(canvas, "title");
     setLastText(`nombre: ${text.trim() || "—"}`);
-    const name = parseTitle(text);
+    // Three letters is enough on an album: «Oso», «Isi», «Sow» are players, and this strip is
+    // the only way they can be read at all (D29).
+    const name = parseTitle(text, ALBUM_TITLE_MIN_LETTERS);
     if (name) s.lastTitle = name;
     const matches = name ? await lookupName(name) : [];
     if (name && matches.length) {

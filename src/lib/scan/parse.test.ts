@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  ALBUM_TITLE_MIN_LETTERS,
   canonicalNumber,
   listReprintNumbers,
   numberVariants,
@@ -65,7 +66,9 @@ describe("parseCollectorLine", () => {
   });
 
   it("rejects noise: no number/total and no set code", () => {
-    expect(parseCollectorLine(ocr("OR T ⏎ C A C SCP TE RAN ⏎ 4 TN ES 5 ⏎ 7. 2009 X HT 2"))).toBeNull();
+    expect(
+      parseCollectorLine(ocr("OR T ⏎ C A C SCP TE RAN ⏎ 4 TN ES 5 ⏎ 7. 2009 X HT 2")),
+    ).toBeNull();
     expect(parseCollectorLine(ocr("11/NK J2 ⏎ B MW ⏎ 119971658203 ⏎"))).toBeNull();
     expect(parseCollectorLine("")).toBeNull();
   });
@@ -120,7 +123,9 @@ describe("sameLine", () => {
   it("tells apart two unpadded numbers of the same set", () => {
     // numberVariants("107")[1] and numberVariants("285")[1] are both undefined, so comparing
     // those made every read without leading zeros equal to every other one.
-    expect(sameLine(parseCollectorLine("107 NCC EN"), parseCollectorLine("285 NCC EN"))).toBe(false);
+    expect(sameLine(parseCollectorLine("107 NCC EN"), parseCollectorLine("285 NCC EN"))).toBe(
+      false,
+    );
   });
 });
 
@@ -138,5 +143,24 @@ describe("parseTitle", () => {
   it("returns null for too little text", () => {
     expect(parseTitle("a - ; 2")).toBeNull();
     expect(parseTitle("")).toBeNull();
+  });
+
+  it("lets an album ask for three letters, where short surnames are real", () => {
+    // «Oso» (334), «Isi», «Sow», «Dro»: legitimate Megacracks, and the name is their only way
+    // in. The four-letter floor made them unreachable — the read never became a lookup.
+    expect(parseTitle("OSO")).toBeNull();
+    expect(parseTitle("OSO", ALBUM_TITLE_MIN_LETTERS)).toBe("OSO");
+    expect(parseTitle("Sow", ALBUM_TITLE_MIN_LETTERS)).toBe("Sow");
+    // Two letters is junk in an album too.
+    expect(parseTitle("Ap", ALBUM_TITLE_MIN_LETTERS)).toBeNull();
+    // Accents count as letters; punctuation doesn't. ("A-B-C" would pass: it survives the word
+    // filter as one token and still strips to three letters.)
+    expect(parseTitle("Gayà", ALBUM_TITLE_MIN_LETTERS)).toBe("Gayà");
+    expect(parseTitle("A-B", ALBUM_TITLE_MIN_LETTERS)).toBeNull();
+  });
+
+  it("keeps the four-letter floor everywhere else", () => {
+    expect(parseTitle("Isi")).toBeNull();
+    expect(parseTitle("Bolt")).toBe("Bolt");
   });
 });

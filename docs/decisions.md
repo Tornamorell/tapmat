@@ -564,6 +564,11 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
     las dos caras es un suplicio. Con el álbum como expansión fija, se lee el nombre de la
     franja vertical (`NAME_LAYOUTS` por línea de producto) y se ofrecen las fichas del jugador
     en ese álbum, la más sencilla primero (`scanner.md`).
+    - **Los apellidos cortos cuentan** (2026-09-29): el mínimo de letras de un título baja de 4 a
+      3 en los álbumes. «Oso» (334), «Isi», «Sow», «Dro»… son 22 fichas entre los dos Megacracks,
+      y al leerse solo por el nombre eran **inalcanzables**: no es que fallara el parecido, es que
+      ni se llegaba a consultar. Fuera de los álbumes sigue en 4, donde un título de tres letras
+      casi siempre es ruido del OCR.
 - **Descartado:**
   - Extraer las listas de CromosRepes de forma automática.
   - Leer el número por detrás: obliga a dar la vuelta a cada carta, y la foto compartida

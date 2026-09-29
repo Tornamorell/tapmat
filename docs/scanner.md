@@ -51,6 +51,13 @@ cámara trasera (getUserMedia, se piden 3840×2160; el móvil da lo que puede)
   - Se acepta un nombre si la similitud es alta (≥ 0,6), o si pasa de 0,45 y además supera a la
     segunda candidata en al menos 0,1. Así, "aerial ee" no se da por "Erial" (Wasteland en
     español, 0,45), que casi empata con cuatro cartas "Aerial …" (0,44).
+  - **Mínimo de letras:** 4 en general (`TITLE_MIN_LETTERS`), porque un título más corto suele
+    ser basura que el OCR coge del marco o de la insignia de fase. **En un álbum de fútbol, 3**
+    (`ALBUM_TITLE_MIN_LETTERS`): «Oso», «Isi», «Sow» y «Dro» son apellidos de verdad —22 fichas
+    entre los dos Megacracks— y el nombre es su única vía, porque no llevan número por delante.
+    El filtro lo hace el parecido, no la longitud. El suelo se aplica **dos veces**, en
+    `parseTitle` y en `lookupByName`, así que los dos tienen que moverse juntos: arreglar solo el
+    segundo no cambia nada, porque el primero ya ha devuelto `null` (2026-09-29).
   - En los empates gana el nombre más corto: la carta de la serie de arte "Lightning Bolt //
     Lightning Bolt" empata con "Lightning Bolt".
   - **Pokémon:** el «ex», «V», «GX» o «VMAX» del título es un logotipo que el OCR no lee
@@ -580,6 +587,14 @@ En `queries/scan.ts`:
 - `NAME_SIMILARITY_SURE` (0,6).
 - `NAME_SIMILARITY_MIN` (0,45).
 - `NAME_MARGIN` (0,1).
+- `ALBUM_NAME_WINDOW` (0,35): en un álbum, cuánto por debajo de la mejor candidata se sigue
+  ofreciendo una ficha. La puerta de entrada acepta además que el nombre **contenga** lo leído,
+  igual que el filtro: si solo mirase la similitud, «Oso» (0,444 contra «oso (baja)») se quedaba
+  fuera por 0,006 aunque el filtro lo hubiera casado.
+
+En `scan/parse.ts`:
+
+- `TITLE_MIN_LETTERS` (4) y `ALBUM_TITLE_MIN_LETTERS` (3).
 
 ## Pendiente
 
