@@ -333,6 +333,12 @@ export function Scanner({
     votes: [] as Array<string | null>,
     empty: 0,
     holdId: null as string | null,
+    /**
+     * The card already photographed in «Solo fotos», while it stays in view. Its own field on
+     * purpose: `holdId` means "already added", and every caller sets it just before calling
+     * add(), so reusing it made the photo mode discard every card as already done.
+     */
+    photoHoldId: null as string | null,
     tick: 0,
     choicesKey: "",
     /** Candidates already answered by picking one, so the chooser doesn't come back while the
@@ -602,6 +608,7 @@ export function Scanner({
         s.heldBack = true;
       } else {
         s.holdId = null;
+        s.photoHoldId = null;
         s.lastTitle = null;
         // The card is gone: if it comes back and is ambiguous again, ask again.
         s.resolvedChoices = "";
@@ -639,7 +646,13 @@ export function Scanner({
       // Still the card just added. Read again after going unread with the card still in view —
       // when it used to be added twice — say how to add another copy.
       progress();
-      if (s.heldBack) setStatus(`«${match.name}» ya está añadida: si es otra copia, pulsa +.`);
+      if (s.heldBack) {
+        setStatus(
+          settings.current.defaults.photoMode
+            ? `«${match.name}»: ya tiene su foto de esta sesión.`
+            : `«${match.name}» ya está añadida: si es otra copia, pulsa +.`,
+        );
+      }
       return;
     }
     s.holdId = match.id;
@@ -1013,12 +1026,13 @@ export function Scanner({
    */
   async function photographOnly(match: ScanMatch) {
     const s = readState.current;
-    // Still the card just dealt with: don't photograph it again while it sits in front.
-    if (s.holdId === match.id) {
+    // Still the card just dealt with: don't photograph it again while it sits in front. Not
+    // `holdId`: the caller has just set that to this very card, so this would never pass.
+    if (s.photoHoldId === match.id) {
       progress();
       return;
     }
-    s.holdId = match.id;
+    s.photoHoldId = match.id;
     s.votes = [];
     setChoices(null);
     s.choicesKey = "";
@@ -1103,13 +1117,21 @@ export function Scanner({
         return;
       }
       if (matches.length === 1) {
-        // The card just added, identified again (a second tap): not a second copy.
-        if (s.holdId === matches[0].id) {
-          setStatus(`«${matches[0].name}» ya está añadida: si es otra copia, pulsa +.`);
+        const photoMode = settings.current.defaults.photoMode;
+        // The card just dealt with, identified again (a second tap): not a second copy, and in
+        // «Solo fotos» not a second photo either. Each mode has its own witness.
+        if (photoMode ? s.photoHoldId === matches[0].id : s.holdId === matches[0].id) {
+          setStatus(
+            photoMode
+              ? `«${matches[0].name}»: ya tiene su foto de esta sesión.`
+              : `«${matches[0].name}» ya está añadida: si es otra copia, pulsa +.`,
+          );
           return;
         }
-        s.holdId = matches[0].id;
-        s.votes = [];
+        if (!photoMode) {
+          s.holdId = matches[0].id;
+          s.votes = [];
+        }
         await add(matches[0], null);
         return;
       }
@@ -1167,6 +1189,8 @@ export function Scanner({
     setEntries([]);
     setHistoryOpen(false);
     readState.current.holdId = null;
+    readState.current.photoHoldId = null;
+    setPhotoCount(0);
     toast("Sesión terminada. Las cartas siguen en Mis cartas, donde las añadiste.", {
       action: { label: "Deshacer", onClick: () => setEntries(previous) },
     });
@@ -1220,6 +1244,7 @@ export function Scanner({
         votes: [],
         empty: 0,
         holdId: null,
+        photoHoldId: null,
         choicesKey: "",
         resolvedChoices: "",
         lastTitle: null,
