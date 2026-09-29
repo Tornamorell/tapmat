@@ -70,7 +70,7 @@ import { cn } from "@/lib/utils";
 import { addItem, changeFinish, changeQuantity } from "../inventory/actions";
 import { savePendingScan } from "../review/actions";
 import { saveCardPhoto } from "../cards/photo-actions";
-import { cardInGuideBlob, cardInGuidePixels, findCardIn } from "@/lib/card-photo";
+import { cardInGuideBlob, cardInGuidePixels, findCardIn, isCardPhoto } from "@/lib/card-photo";
 import type { Pt, Quad } from "@/lib/scan/card-quad";
 import { quadBounds, quadsAgree } from "@/lib/scan/find-card";
 import { bestMatch, cardHash } from "@/lib/scan/card-hash";
@@ -309,6 +309,10 @@ export function Scanner({
   const [movingSession, setMovingSession] = useState(false);
   const [busy, setBusy] = useState(false);
   const [identifying, setIdentifying] = useState(false);
+  // «Solo fotos»: how many were shared this session, and the card waiting for an answer about
+  // replacing the photo someone else already took.
+  const [photoCount, setPhotoCount] = useState(0);
+  const [replacing, setReplacing] = useState<ScanMatch | null>(null);
   const [torch, setTorch] = useState({ supported: false, on: false });
   const [pendingCount, setPendingCount] = useState(initialPending);
   const [saving, setSaving] = useState(false);
@@ -366,7 +370,7 @@ export function Scanner({
   };
   // Paused while the history is open, the AI is identifying or the guide is being adjusted:
   // nothing added behind the user's back.
-  const paused = historyOpen || identifying || adjusting;
+  const paused = historyOpen || identifying || adjusting || !!replacing;
   const settings = useRef({ defaults, fixedSet, locations, paused, nameLayout, place });
   useEffect(() => {
     settings.current = { defaults, fixedSet, locations, paused, nameLayout, place };
@@ -830,6 +834,12 @@ export function Scanner({
 
   async function add(match: ScanMatch, lang: string | null) {
     const { defaults, locations } = settings.current;
+    // «Solo fotos»: the picture is the point, not a copy. The vote, the chooser and «Identificar
+    // con IA» all come through add(), so one branch here covers every way a card is recognised.
+    if (defaults.photoMode) {
+      await photographOnly(match);
+      return;
+    }
     const finish = finishFor(defaults.finish, match.finishes) as Finish;
     try {
       const r = await addItem({
@@ -961,7 +971,7 @@ export function Scanner({
    * Shares a photo of the card in the guide for a card the catalog has no image for, unless
    * someone already did (D30). Runs in the background: a failure only means no photo yet.
    */
-  async function contributePhoto(catalogCardId: string) {
+  async function contributePhoto(catalogCardId: string, replace = false) {
     try {
       const video = videoRef.current;
       const card = readRect();
@@ -972,9 +982,10 @@ export function Scanner({
       form.set("image", blob, "carta.jpg");
       form.set("catalogCardId", catalogCardId);
       form.set("source", "scan");
-      form.set("onlyIfMissing", "1");
+      form.set("onlyIfMissing", replace ? "0" : "1");
       const r = await saveCardPhoto(form);
       if (!r.saved || !r.url) return;
+      setPhotoCount((n) => n + 1);
       // Recognised by this photo from the next card on (D33).
       if (r.hash) photoHashesRef.current.set(catalogCardId, r.hash);
       const url = r.url;
@@ -991,6 +1002,42 @@ export function Scanner({
     } catch {
       // No photo this time; the next scan of this card will try again.
     }
+  }
+
+  /**
+   * «Solo fotos» (D30): shares the picture instead of adding a copy. Three cases, and they're
+   * not the same: a card with no image gets photographed straight away; one the catalog pictures
+   * is left alone, because saveCardPhoto refuses to cover a Scryfall or TCGdex image and asking
+   * would offer something that can't happen; and a photo someone else shared can be replaced, so
+   * it asks first.
+   */
+  async function photographOnly(match: ScanMatch) {
+    const s = readState.current;
+    // Still the card just dealt with: don't photograph it again while it sits in front.
+    if (s.holdId === match.id) {
+      progress();
+      return;
+    }
+    s.holdId = match.id;
+    s.votes = [];
+    setChoices(null);
+    s.choicesKey = "";
+    progress();
+
+    if (!match.imageSmall) {
+      setStatus(`Fotografiando «${match.name}»…`);
+      await contributePhoto(match.id);
+      beep();
+      navigator.vibrate?.(60);
+      return;
+    }
+    if (!isCardPhoto(match.imageSmall)) {
+      setStatus(`«${match.name}» ya trae imagen del catálogo: esa no se sustituye.`);
+      return;
+    }
+    setReplacing(match);
+    navigator.vibrate?.(30);
+    setStatus(`«${match.name}» ya tiene foto compartida.`);
   }
 
   /** The card in the guide, straightened (D32), PHOTO_HEIGHT px tall: for «Para luego» and the AI. */
@@ -1619,8 +1666,17 @@ export function Scanner({
             aria-label={`Esta sesión: ${totalsText}. Ver el historial`}
             className="rounded-full bg-black/55 px-3 py-1 text-sm tabular-nums backdrop-blur hover:bg-black/70"
           >
-            {totals.cards} ·{" "}
-            <span className="text-primary font-semibold">{formatEur(totals.valueEur)}</span>
+            {defaults.photoMode ? (
+              // Nothing enters the inventory in photo mode: a euro total would mean nothing.
+              <>
+                {photoCount} {photoCount === 1 ? "foto" : "fotos"}
+              </>
+            ) : (
+              <>
+                {totals.cards} ·{" "}
+                <span className="text-primary font-semibold">{formatEur(totals.valueEur)}</span>
+              </>
+            )}
           </button>
         </div>
 
@@ -1694,6 +1750,40 @@ export function Scanner({
           </p>
         )}
 
+        {/* «Solo fotos» on a card someone already photographed: replacing is possible, so it's
+            asked rather than assumed. The read loop is paused meanwhile. */}
+        {replacing && (
+          <div className="absolute inset-x-3 bottom-28 z-30 space-y-2 rounded-2xl bg-black/85 p-3 text-sm backdrop-blur">
+            <p>
+              <strong>{replacing.name}</strong> ya tiene una foto compartida. ¿La sustituyes por
+              esta?
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                onClick={() => {
+                  const match = replacing;
+                  setReplacing(null);
+                  setStatus(`Sustituyendo la foto de «${match.name}»…`);
+                  void contributePhoto(match.id, true);
+                }}
+              >
+                Sustituir
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setStatus(`«${replacing.name}»: se queda la foto que había.`);
+                  setReplacing(null);
+                }}
+              >
+                Saltar
+              </Button>
+            </div>
+          </div>
+        )}
+
         {toolsOpen && (
           <div className="absolute top-[calc(max(env(safe-area-inset-top),0.75rem)+3.5rem)] right-17 z-10 w-60 space-y-2.5 rounded-2xl bg-black/80 p-3 text-sm backdrop-blur">
             <button
@@ -1749,6 +1839,24 @@ export function Scanner({
                 </p>
               </>
             )}
+            <button
+              type="button"
+              role="switch"
+              aria-checked={defaults.photoMode}
+              className="flex w-full items-center justify-between rounded-lg bg-white/10 px-3 py-1.5 text-left hover:bg-white/20"
+              onClick={() => setDefaults({ photoMode: !defaults.photoMode })}
+            >
+              Solo fotos
+              <span
+                className={cn("text-xs", defaults.photoMode ? "text-emerald-400" : "text-white/50")}
+              >
+                {defaults.photoMode ? "Sí" : "No"}
+              </span>
+            </button>
+            <p className="text-xs text-white/60">
+              Escanear guarda la foto de la carta para todos, sin añadir ninguna copia a tus cartas.
+              Para llenar de imágenes un álbum que no las tiene.
+            </p>
             <button
               type="button"
               className="w-full rounded-lg bg-white/10 px-3 py-1.5 text-left hover:bg-white/20"

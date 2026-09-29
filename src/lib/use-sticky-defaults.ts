@@ -33,6 +33,11 @@ export interface StickyDefaults {
    * button (D31). Off by default: every call costs money and the daily limit is 150.
    */
   autoIdentify: boolean;
+  /**
+   * «Solo fotos» (D30): escanear sirve para fotografiar la carta, no para añadir copias. Nada
+   * entra en el inventario mientras está encendido.
+   */
+  photoMode: boolean;
 }
 
 const DEFAULTS: StickyDefaults = {
@@ -49,6 +54,7 @@ const DEFAULTS: StickyDefaults = {
   guideDy: 0,
   findCard: true,
   autoIdentify: false,
+  photoMode: false,
 };
 
 const KEY = "cardllector:defaults";

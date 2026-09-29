@@ -114,7 +114,8 @@ cámara trasera (getUserMedia, se piden 3840×2160; el móvil da lo que puede)
     - linterna, si el móvil la ofrece en `getCapabilities().torch`;
     - «Identificar con IA»;
     - «Para luego», con las que hay por revisar;
-    - ajustes: «Ajustar recuadro», «Buscar la carta», «IA automática» y «Ver lo que lee».
+    - ajustes: «Ajustar recuadro», «Buscar la carta», «IA automática», «Solo fotos» y «Ver lo
+      que lee».
   - **En medio:** el recuadro guía, con la franja de datos marcada en amarillo y el estado de la
     lectura.
     - Va centrado en la pantalla, donde mira la cámara, y no cambia de tamaño ni de sitio. Antes
@@ -196,6 +197,16 @@ cámara trasera (getUserMedia, se piden 3840×2160; el móvil da lo que puede)
     - Busca el nombre solo en el álbum (`lookupInAlbum`) y ofrece todas las fichas del
       jugador (base, Élite, Power, Special One…), la más sencilla primero, para tocar la tuya.
       Solo se escanea por delante, que es también la foto compartida.
+  - **«Solo fotos»** (2026-09-29), interruptor en los ajustes y apagado por defecto: escanear
+    sirve para **fotografiar** la carta, no para añadir copias. Nada entra en el inventario, y el
+    contador de arriba pasa a decir «N fotos» en vez de cartas y euros. Es para recorrer un álbum
+    que no tiene imágenes, como las 646 Megacracks 2026-27.
+    - Se intercepta en `add()`, que es por donde pasan los tres caminos (la votación, la tira de
+      candidatas y «Identificar con IA»), así que una sola rama los cubre todos.
+    - Carta sin imagen: se fotografía y sigue. Carta con **imagen del catálogo** (Scryfall,
+      TCGdex): se deja, porque `saveCardPhoto` no la sustituye nunca (D30) y preguntar sería
+      ofrecer algo que no puede pasar. Carta con **foto compartida**: pregunta antes de
+      sustituirla, y la lectura queda en pausa mientras decides.
     - Medido con una base de 2025-26: «LAMINE YAMAL», con un 78 % de confianza. Falta
       probarlo con cartas reales de las series especiales, que pueden llevar el nombre en otro
       sitio.

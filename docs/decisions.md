@@ -612,6 +612,17 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
     - «Sin imagen» es `catalog_cards.image_small is null`, que cubre los dos casos a la vez —ni
       su fuente traía imagen ni nadie ha compartido una—, porque compartir una escribe ahí su
       URL y borrarla la vuelve a dejar en null (`saveCardPhoto` / `deleteCardPhoto`).
+  - **Actualización (2026-09-29) · modo «Solo fotos»:** interruptor en los ajustes del escáner
+    (`defaults.photoMode`, apagado por defecto y recordado en el móvil) para que escanear
+    fotografíe la carta sin añadir ninguna copia al inventario. Lo pidió el usuario nada más
+    importar las 646 Megacracks 2026-27, que no tienen ni una imagen.
+    - No hacía falta nada nuevo en el servidor: `saveCardPhoto` ya endereza, calcula la huella
+      (D33) y reenlaza `image_small`/`image_normal`. Lo único que había era un acoplamiento —
+      la foto se aportaba dentro de `add()`—, y el modo lo rompe.
+    - **Tres casos, y no son el mismo:** sin imagen, se fotografía; con imagen del catálogo, se
+      deja y se avisa, porque sustituirla está prohibido más arriba en esta misma decisión; con
+      foto compartida, **se pregunta**, que es lo que eligió el usuario frente a sustituir
+      siempre o saltar siempre.
 - **Descartado:**
   - Fotos privadas de cada usuario: el usuario prefiere compartirlas.
   - Imágenes de terceros.
