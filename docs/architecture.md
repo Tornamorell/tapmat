@@ -57,8 +57,11 @@ Navegador ── páginas (Server Components) + Server Actions ┘
 
 "Tienes X de Y" en una expansión cuenta las ediciones distintas de tus cartas.
 
-Los formularios de alta comparten el selector `EntryTarget` (`src/components/entry-target.tsx`),
-que tiene dos partes:
+Los formularios de alta comparten los ajustes de alta **plegados en una línea**
+(`EntrySettings`, `src/components/entry-target.tsx`, D40): «Se añaden a: Caja 1 › A y «Kanto» ·
+🇬🇧 Inglés · NM · Normal», con «Cambiar» para desplegarlos. Salen así en Mis cartas, la ficha de
+carta, la expansión, la colección y el escáner. Desplegados, son el selector `EntryTarget`, que
+tiene dos partes:
 
 - **Guardar en:** la ubicación y, si tiene separadores, el separador, con el botón «Siguiente
   separador».

@@ -21,17 +21,12 @@ import { AddFilteredToCollection } from "@/components/add-filtered-to-collection
 import { LanguageFlag } from "@/components/card-attributes";
 import { CardThumb } from "@/components/card-thumb";
 import type { CollectionOption } from "@/components/collection-picker";
-import { EntryTarget, targetFor, useEntryResult } from "@/components/entry-target";
+import { EntrySettings, targetFor, useEntryResult } from "@/components/entry-target";
 import type { LocationOption } from "@/components/location-picker";
 import { MoveDialog } from "@/components/move-dialog";
 import { QuickAdd } from "@/components/quick-add";
 import { NextSectionButton, sectionFill } from "@/components/section-picker";
-import {
-  ConditionSelect,
-  FinishSelect,
-  LanguageSelect,
-  finishFor,
-} from "@/components/stack-fields";
+import { finishFor } from "@/components/stack-fields";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FINISH_LABELS, formatEur, placeLabel } from "@/lib/format";
@@ -1542,20 +1537,8 @@ export function Scanner({
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold tracking-tight">Escanear</h1>
 
-      <section className="bg-muted/40 space-y-3 rounded-lg border p-3" aria-label="Sesión">
-        <EntryTarget collections={collections} locations={locations} />
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          <span className="text-muted-foreground">Por defecto</span>
-          <FinishSelect value={defaults.finish} onChange={(v) => setDefaults({ finish: v })} />
-          <ConditionSelect
-            value={defaults.condition}
-            onChange={(v) => setDefaults({ condition: v })}
-          />
-          <LanguageSelect
-            value={defaults.language}
-            onChange={(v) => setDefaults({ language: v })}
-          />
-        </div>
+      <section className="space-y-3" aria-label="Sesión">
+        <EntrySettings collections={collections} locations={locations} copyFields />
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <span className="text-muted-foreground">Expansión fija</span>
           <SetPicker sets={sets} value={fixedSet} onChange={setFixedSet} />

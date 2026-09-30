@@ -97,7 +97,8 @@ cámara trasera (getUserMedia, se piden 3840×2160; el móvil da lo que puede)
 ## Pantalla (`/scan`)
 
 - **Antes de empezar:**
-  - Ubicación y colección, las dos opcionales (`EntryTarget`, D23). Sin ninguna, lo escaneado
+  - Ubicación y colección, las dos opcionales (`EntryTarget`, D23), con el idioma, el estado y
+    el acabado, plegados en una línea que se despliega con «Cambiar» (`EntrySettings`, D40). Sin ninguna, lo escaneado
     entra en Mis cartas sin ubicación.
   - Si la ubicación tiene separadores (D28), también el separador. En modo automático, cuando
     se llena, lo siguiente va al separador siguiente, con aviso y vibración para que pongas el

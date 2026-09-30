@@ -1,13 +1,16 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { SlidersHorizontalIcon } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { AddItemResult } from "@/app/(app)/inventory/actions";
 import { CollectionPicker, type CollectionOption } from "@/components/collection-picker";
 import { LocationPicker, type LocationOption } from "@/components/location-picker";
 import { NextSectionButton, SectionPicker, currentSectionId } from "@/components/section-picker";
 import { ConditionSelect, FinishSelect, LanguageSelect } from "@/components/stack-fields";
+import { FINISH_LABELS, LANGUAGE_FLAGS, LANGUAGES, placeLabel } from "@/lib/format";
 import { type StickyDefaults, useStickyDefaults, validId } from "@/lib/use-sticky-defaults";
+import { cn } from "@/lib/utils";
 
 /** The divider entries go behind: the remembered one if it's in that location, else its current one. */
 function sectionFor(defaults: StickyDefaults, locations: LocationOption[]): string | null {
@@ -23,6 +26,95 @@ export function targetFor(defaults: StickyDefaults, locations: LocationOption[])
     sectionId: sectionFor(defaults, locations),
     collectionId: defaults.entryCollectionId,
   };
+}
+
+/**
+ * Keeps the remembered divider in step with what's shown, for entry points that don't get the
+ * list of locations (the + buttons on set pages send the remembered id as is). Returns it.
+ */
+function useSyncedSection(locations: LocationOption[]) {
+  const [defaults, setDefaults] = useStickyDefaults();
+  const sectionId = sectionFor(defaults, locations);
+  useEffect(() => {
+    if (sectionId !== defaults.lastSectionId) setDefaults({ lastSectionId: sectionId });
+  }, [sectionId, defaults.lastSectionId, setDefaults]);
+  return sectionId;
+}
+
+/**
+ * The entry settings folded into one line — «Se añaden a: Caja 1 › A · 🇬🇧 Inglés · NM ·
+ * Normal» — that opens EntryTarget (and EntryCopyFields, with `copyFields`) when tapped. They're
+ * set once and then left alone, yet they used to take the top of every page that adds cards: on
+ * a phone, a set's page was a full screen of selects before its first card.
+ */
+export function EntrySettings({
+  locations,
+  collections,
+  withCollection = true,
+  copyFields = false,
+  finishLabels = FINISH_LABELS,
+  label = "Se añaden a",
+  className,
+}: {
+  locations: LocationOption[];
+  collections: CollectionOption[];
+  withCollection?: boolean;
+  /** Also language, condition and finish: for the + buttons, which add with them unseen. */
+  copyFields?: boolean;
+  finishLabels?: Record<"nonfoil" | "foil" | "etched", string>;
+  label?: string;
+  className?: string;
+}) {
+  const [defaults] = useStickyDefaults();
+  const [open, setOpen] = useState(false);
+  // Mounted even while folded: the + buttons rely on the remembered divider being valid.
+  const sectionId = useSyncedSection(locations);
+
+  const location = locations.find((l) => l.id === defaults.lastLocationId);
+  const section = location?.sections?.find((s) => s.id === sectionId);
+  const collection = withCollection
+    ? collections.find((c) => c.id === defaults.entryCollectionId)
+    : undefined;
+  const flag = LANGUAGE_FLAGS[defaults.language];
+  const summary = [
+    (placeLabel(location?.name, section?.name) ?? "Sin ubicación") +
+      (collection ? ` y «${collection.name}»` : ""),
+    copyFields &&
+      `${flag ? `${flag} ` : ""}${LANGUAGES[defaults.language] ?? defaults.language}`,
+    copyFields && defaults.condition,
+    copyFields && finishLabels[defaults.finish],
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  return (
+    // A whole line even inside a flex row (the set page's filters): sized to its content, the
+    // summary wouldn't truncate and ran off the side of a phone.
+    <div className={cn("bg-muted/40 w-full min-w-0 rounded-lg border text-sm", className)}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-2 px-3 py-2 text-left"
+      >
+        <SlidersHorizontalIcon className="text-muted-foreground size-4 shrink-0" />
+        {/* On a phone the summary needs the room more than the label does; the icon says what it is. */}
+        <span className="text-muted-foreground hidden shrink-0 sm:inline">{label}</span>
+        <span className="min-w-0 flex-1 truncate font-medium" title={summary}>
+          {summary}
+        </span>
+        <span className="text-primary shrink-0 text-xs font-medium">
+          {open ? "Listo" : "Cambiar"}
+        </span>
+      </button>
+      {open && (
+        <div className="space-y-2 border-t px-3 py-3">
+          <EntryTarget locations={locations} collections={collections} withCollection={withCollection} />
+          {copyFields && <EntryCopyFields finishLabels={finishLabels} />}
+        </div>
+      )}
+    </div>
+  );
 }
 
 /**
@@ -43,13 +135,7 @@ export function EntryTarget({
   const [defaults, setDefaults] = useStickyDefaults();
   const location = locations.find((l) => l.id === defaults.lastLocationId);
   const sections = location?.sections ?? [];
-  const sectionId = sectionFor(defaults, locations);
-
-  // Keep the remembered divider in step with what's shown, for entry points that don't get the
-  // list of locations (the + buttons on set pages send the remembered id as is).
-  useEffect(() => {
-    if (sectionId !== defaults.lastSectionId) setDefaults({ lastSectionId: sectionId });
-  }, [sectionId, defaults.lastSectionId, setDefaults]);
+  const sectionId = useSyncedSection(locations);
 
   return (
     <div className="flex flex-wrap items-center gap-2 text-sm">

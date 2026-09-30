@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import { EntryCopyFields, EntryTarget } from "@/components/entry-target";
+import { EntrySettings } from "@/components/entry-target";
 import { ProgressMeter } from "@/components/progress-meter";
 import { formatEur, formatInt } from "@/lib/format";
 import { collectionOptions, getCollection, listCollectionCards } from "@/lib/queries/collections";
@@ -152,13 +152,13 @@ export default async function CollectionPage({
 
       {/* How the + on each card adds a copy to «Mis cartas»: it used to use these unseen. */}
       {cards.length > 0 && (
-        <div className="bg-muted/40 space-y-2 rounded-lg border p-3">
-          <p className="text-muted-foreground text-xs">
-            El + de cada carta la añade a tus cartas así:
-          </p>
-          <EntryTarget locations={locations} collections={[]} withCollection={false} />
-          <EntryCopyFields />
-        </div>
+        <EntrySettings
+          locations={locations}
+          collections={[]}
+          withCollection={false}
+          copyFields
+          label="El + la añade a tus cartas:"
+        />
       )}
 
       {cards.length > 0 && (

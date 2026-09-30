@@ -77,6 +77,8 @@ compartidas, 7 días de precios guardados y 12 días de valor del inventario.
 - **«IA automática»** en el escáner (D31): interruptor, apagado por defecto, para que la carta
   con la que el lector se atasca se mande sola a la IA en vez de esperar a que pulses. Una
   llamada por carta, y se apaga solo al llegar al límite diario.
+- **Ajustes de alta plegados** (D40): una línea resumen con «Cambiar» en Mis cartas, la ficha,
+  la expansión, la colección y el escáner, en vez de todos los selectores arriba.
 - **«Buscar por número»** en el escáner: el número de la carta (y la expansión, si no hay una
   fija) escrito a mano. En «Solo fotos» se abre solo cuando la IA no encuentra la carta.
 - **Lista de «Wants»** (D23): pestaña propia junto a Colecciones y Mazos, con «Lo quiero» de un

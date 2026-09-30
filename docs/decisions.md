@@ -1199,3 +1199,32 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
 - **Revisar cuando:** el usuario tenga muchas cartas que no sean NM, o aparezca una fuente con
   precio por estado o por idioma. La API propia de Cardmarket sería la candidata, comprobando
   antes si lo publica segmentado.
+
+## D40 · Los ajustes de alta, plegados en una línea — 2026-09-30 · provisional
+
+- **Contexto:** en un repaso del diseño de toda la app, lo que más pesaba era que los ajustes de
+  alta —«Guardar en», «y añadir a» y «Por defecto» (idioma, estado, acabado)— iban siempre
+  desplegados y arriba en Mis cartas, la ficha de carta, la expansión, la colección y el escáner.
+  En el móvil, la expansión era una pantalla entera de controles sin ninguna carta, y en Mis
+  cartas la primera carta quedaba al final de la primera pantalla. Son valores que se fijan una
+  vez y se dejan (D23, D28): no merecen la parte de arriba de cada visita.
+- **Decisión:**
+  - `EntrySettings` los resume en una línea —«Se añaden a: Carpeta Pokémon › Clásicas y «Kanto»
+    · 🇬🇧 Inglés · NM · Normal»— con «Cambiar», que despliega `EntryTarget` y, donde el **+**
+    añade con ellos (expansión, colección, escáner), `EntryCopyFields`.
+  - En el móvil la etiqueta «Se añaden a» se oculta: el resumen necesita el sitio y el icono ya
+    dice qué es.
+  - Plegado siempre al entrar, sin recordar si estaba abierto: si cambias algo, lo ves en la
+    línea.
+  - La sincronización del separador recordado (`useSyncedSection`) vive en `EntrySettings`, no
+    solo en `EntryTarget`: los **+** de la expansión mandan el separador tal cual, y con el panel
+    plegado `EntryTarget` no está montado.
+  - La fila de la ficha de carta y del alta rápida con acabado, estado, idioma y cantidad se
+    queda a la vista: ahí son la elección de esa carta, no un ajuste.
+- **Descartado:**
+  - Un popover: los selectores nativos y el «+ Nueva ubicación…» en línea van mejor en el
+    propio flujo de la página, sobre todo en el móvil.
+  - Una página de ajustes aparte: el destino cambia a menudo al ordenar («ahora, la caja 2») y
+    tiene que estar a un toque de donde se añade.
+- **Revisar cuando:** se añada a menudo a destinos distintos en la misma visita y el toque de
+  más moleste.

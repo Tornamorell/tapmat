@@ -6,7 +6,7 @@ import { addItem } from "@/app/(app)/inventory/actions";
 import { CardSearchBox, useCardPicker } from "@/components/card-picker";
 import { CardPickerRow } from "@/components/card-picker-row";
 import type { CollectionOption } from "@/components/collection-picker";
-import { EntryTarget, targetFor, useEntryResult } from "@/components/entry-target";
+import { EntrySettings, targetFor, useEntryResult } from "@/components/entry-target";
 import type { LocationOption } from "@/components/location-picker";
 import {
   ConditionSelect,
@@ -80,7 +80,7 @@ export function QuickAdd({
         placeholder="Añadir carta: nombre, o expansión y número (OBF 125)"
         label="Buscar carta para añadir"
       />
-      <EntryTarget locations={locations} collections={collections} />
+      <EntrySettings locations={locations} collections={collections} />
 
       {picker.selected && printing && (
         <CardPickerRow picker={picker}>

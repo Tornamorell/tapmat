@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import type { CollectionOption } from "@/components/collection-picker";
-import { EntryTarget, targetFor, useEntryResult } from "@/components/entry-target";
+import { EntrySettings, targetFor, useEntryResult } from "@/components/entry-target";
 import type { LocationOption } from "@/components/location-picker";
 import {
   ConditionSelect,
@@ -69,7 +69,7 @@ export function AddCopy({
 
   return (
     <div className="bg-card space-y-3 rounded-xl border p-3">
-      <EntryTarget locations={locations} collections={collections} />
+      <EntrySettings locations={locations} collections={collections} />
       <div className="flex flex-wrap items-end gap-2">
         <FinishSelect
           value={finish}
