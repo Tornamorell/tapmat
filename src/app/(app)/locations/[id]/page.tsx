@@ -52,7 +52,7 @@ export default async function LocationPage({ params, searchParams }: PageProps<"
   const { id } = await params;
   const location = await load(user.id, id);
   const sp = await searchParams;
-  const { q, sort, page } = parseItemParams(sp);
+  const { q, sort, page, view } = parseItemParams(sp);
 
   const [sections, unsectioned] = location.id
     ? await Promise.all([listSections(location.id), unsectionedCount(location.id)])
@@ -72,7 +72,12 @@ export default async function LocationPage({ params, searchParams }: PageProps<"
     collectionOptions(user.id),
   ]);
 
-  const href = hrefBuilder({ q, sort: sort === "value" ? undefined : sort, section: sectionParam });
+  const href = hrefBuilder({
+    q,
+    sort: sort === "value" ? undefined : sort,
+    view: view === "list" ? undefined : view,
+    section: sectionParam,
+  });
   const filtered = !!q || sectionId !== undefined;
 
   return (
@@ -135,6 +140,7 @@ export default async function LocationPage({ params, searchParams }: PageProps<"
       <ItemsToolbar
         q={q}
         sort={sort}
+        view={view}
         href={href}
         hidden={{ sort: sort === "value" ? undefined : sort, section: sectionParam }}
       />
@@ -158,7 +164,13 @@ export default async function LocationPage({ params, searchParams }: PageProps<"
               label="Añadir estas cartas a una colección"
             />
           </div>
-          <ItemsTable rows={rows} context="location" locations={locations} collections={collections} />
+          <ItemsTable
+            rows={rows}
+            context="location"
+            view={view}
+            locations={locations}
+            collections={collections}
+          />
         </>
       )}
 

@@ -294,19 +294,16 @@ export default async function CardPage({ params }: PageProps<"/cards/[id]">) {
         </div>
       </div>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-bold">Histórico de precio</h2>
-        {history.length >= 2 && historySeries.length > 0 ? (
+      {/* Only once there's a line to draw: a heading over a sentence saying there's nothing yet
+          took a full section on most cards — every one you don't own. */}
+      {history.length >= 2 && historySeries.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold">Histórico de precio</h2>
           <div className="bg-card rounded-xl border p-4">
             <ValueChart dates={history.map((h) => h.date)} series={historySeries} height={200} />
           </div>
-        ) : (
-          <p className="text-muted-foreground text-sm">
-            Se guarda un precio al día de las cartas que tienes, desde que añades la primera copia.
-            {history.length === 1 && " De momento hay uno."}
-          </p>
-        )}
-      </section>
+        </section>
+      )}
 
       {printings.length > 1 && (
         <section className="space-y-3">
@@ -328,12 +325,14 @@ export default async function CardPage({ params }: PageProps<"/cards/[id]">) {
                 {printings.map((p) => (
                   <TableRow key={p.id} className={cn(p.id === printing.id && "bg-primary/8")}>
                     <TableCell>
-                      <Link
-                        href={`/cards/${p.id}`}
-                        className="flex items-center gap-1.5 hover:underline"
-                      >
-                        <SetIcon src={p.setIcon} alt="" />
-                        {p.setName ?? p.setCode.toUpperCase()}
+                      {/* The picture is what tells printings apart — a full art is worth a hundred
+                          times the regular one — so each row shows it. */}
+                      <Link href={`/cards/${p.id}`} className="group flex items-center gap-2.5">
+                        <CardThumb src={p.imageSmall} alt="" size="xs" />
+                        <span className="flex items-center gap-1.5 group-hover:underline">
+                          <SetIcon src={p.setIcon} alt="" />
+                          {p.setName ?? p.setCode.toUpperCase()}
+                        </span>
                       </Link>
                     </TableCell>
                     <TableCell className="tabular-nums">{p.collectorNumber}</TableCell>

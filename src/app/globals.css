@@ -227,6 +227,13 @@
     max-width: 100%;
     perspective: 1000px;
   }
+  /* On a phone, 300px of card (419 tall) filled the first screen and pushed the price and
+     «Añadir» below it: a smaller card leaves them in view. */
+  @media (width < 48rem) {
+    .holo-stage {
+      width: 220px;
+    }
+  }
   .holo-card {
     width: 100%;
     transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));

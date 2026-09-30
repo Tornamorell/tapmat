@@ -29,7 +29,7 @@ export const metadata: Metadata = { title: "Mis cartas" };
 export default async function InventoryPage({ searchParams }: PageProps<"/inventory">) {
   const user = await requireUser();
   const sp = await searchParams;
-  const { q, sort, page } = parseItemParams(sp);
+  const { q, sort, page, view } = parseItemParams(sp);
   // ?loc=<location id> or ?loc=none (copies without location).
   const loc = typeof sp.loc === "string" ? sp.loc : undefined;
   const locationId =
@@ -62,6 +62,7 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
   const href = hrefBuilder({
     q,
     sort: sort === "value" ? undefined : sort,
+    view: view === "list" ? undefined : view,
     loc: locParam,
     estimar: estimarParam,
   });
@@ -140,6 +141,7 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
       <ItemsToolbar
         q={q}
         sort={sort}
+        view={view}
         href={href}
         hidden={{ sort: sort === "value" ? undefined : sort, loc: locParam, estimar: estimarParam }}
       />
@@ -168,6 +170,7 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
           <ItemsTable
             rows={rows}
             context="inventory"
+            view={view}
             locations={locations}
             collections={collections}
           />

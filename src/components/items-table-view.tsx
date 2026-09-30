@@ -25,6 +25,7 @@ import { priceSource } from "@/lib/collection/pricing";
 import { formatEur, formatInt, placeLabel } from "@/lib/format";
 import { finishLabel } from "@/lib/games";
 import { gradeLabel } from "@/lib/grading";
+import type { ItemView } from "@/components/items-table";
 import type { InventoryItem } from "@/lib/queries/items";
 import { cn } from "@/lib/utils";
 
@@ -35,16 +36,18 @@ type Context = "inventory" | "location";
  * them in a collection (D28), change their condition, language or finish, or delete them. Phones get a list with everything in view — a wide table
  * there hid the details and the menu behind a sideways scroll nobody noticed; from `md` up,
  * the table. In the full inventory each row shows where it is; on a location's page, only its
- * divider.
+ * divider. `view="grid"` shows the cards themselves instead, on every screen size.
  */
 export function ItemsTableView({
   rows,
   context,
+  view,
   locations,
   collections,
 }: {
   rows: InventoryItem[];
   context: Context;
+  view: ItemView;
   locations: LocationOption[];
   collections: CollectionOption[];
 }) {
@@ -80,8 +83,58 @@ export function ItemsTableView({
 
   return (
     <>
+      {view === "grid" && (
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+          {rows.map((item) => (
+            <li key={item.id} className="space-y-1.5">
+              <div className="relative">
+                {item.card?.id ? (
+                  <Link href={`/cards/${item.card.id}`} className="block">
+                    <CardThumb
+                      src={item.card.imageSmall}
+                      alt={item.card.name ?? ""}
+                      label={item.card.collectorNumber ? `#${item.card.collectorNumber}` : undefined}
+                      size="md"
+                      foil={item.finish !== "nonfoil"}
+                      className={cn("w-full!", selected.has(item.id) && "ring-primary ring-2")}
+                    />
+                  </Link>
+                ) : (
+                  <CardThumb src={null} alt="Sin catálogo" size="md" className="w-full!" />
+                )}
+                {item.quantity > 1 && (
+                  <span className="bg-primary text-primary-foreground absolute top-1.5 left-1.5 rounded-md px-1.5 py-0.5 text-xs font-semibold tabular-nums shadow-sm">
+                    ×{item.quantity}
+                  </span>
+                )}
+                <span className="bg-background/80 absolute top-1.5 right-1.5 flex size-7 items-center justify-center rounded-md shadow-sm backdrop-blur">
+                  {checkbox(item)}
+                </span>
+              </div>
+              <div className="flex items-start gap-1">
+                <div className="min-w-0 flex-1 text-xs leading-tight">
+                  <p className="truncate text-sm font-medium" title={item.card?.name ?? undefined}>
+                    {item.card?.name ?? "Sin catálogo"}
+                  </p>
+                  <p className="text-muted-foreground truncate">
+                    {item.card?.setCode?.toUpperCase()} #{item.card?.collectorNumber}
+                  </p>
+                </div>
+                <div className="-mt-1 -mr-1 shrink-0">{actions(item)}</div>
+              </div>
+              <div className="flex items-center justify-between gap-1">
+                <GridBadges item={item} />
+                <span className="text-primary shrink-0 text-sm font-semibold tabular-nums">
+                  {total(item)}
+                </span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
       {/* Phones */}
-      <ul className="bg-card divide-y rounded-xl border md:hidden">
+      <ul className={cn("bg-card divide-y rounded-xl border md:hidden", view === "grid" && "hidden")}>
         <li className="text-muted-foreground flex items-center gap-3 px-3 py-2 text-sm">
           <input
             type="checkbox"
@@ -142,7 +195,9 @@ export function ItemsTableView({
       </ul>
 
       {/* Tablets and up */}
-      <div className="bg-card hidden overflow-x-auto rounded-xl border md:block">
+      <div
+        className={cn("bg-card hidden overflow-x-auto rounded-xl border", view === "list" && "md:block")}
+      >
         <Table>
           <TableHeader>
             <TableRow>
@@ -308,6 +363,24 @@ function PriceNote({ item }: { item: InventoryItem }) {
     );
   }
   return null;
+}
+
+/** Under a grid tile there's room for the slab, the finish and the condition, not for where it is. */
+function GridBadges({ item }: { item: InventoryItem }) {
+  return (
+    <div className="flex min-w-0 flex-wrap items-center gap-1 text-xs">
+      {item.gradingCompany && (
+        <Badge className="bg-foreground text-background font-semibold">
+          {gradeLabel(item.gradingCompany, item.grade)}
+        </Badge>
+      )}
+      {item.finish !== "nonfoil" && (
+        <Badge className="foil-badge">{finishLabel(item.card?.game, item.finish)}</Badge>
+      )}
+      <ConditionBadge condition={item.condition} />
+      <LanguageFlag code={item.language} />
+    </div>
+  );
 }
 
 /** Grading, finish, condition, language and where it is, as small labels. */

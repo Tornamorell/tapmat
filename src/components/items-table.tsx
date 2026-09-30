@@ -1,3 +1,4 @@
+import { LayoutGridIcon, ListIcon } from "lucide-react";
 import Link from "next/link";
 import type { CollectionOption } from "@/components/collection-picker";
 import { ItemsTableView } from "@/components/items-table-view";
@@ -15,6 +16,7 @@ import { cn } from "@/lib/utils";
 export function ItemsTable(props: {
   rows: InventoryItem[];
   context: "inventory" | "location";
+  view: ItemView;
   locations: LocationOption[];
   collections: CollectionOption[];
 }) {
@@ -23,18 +25,25 @@ export function ItemsTable(props: {
 
 export type HrefFor = (patch: Record<string, string | number | undefined>) => string;
 
-/** Name filter + sort links. `hidden` keeps other query params when the form submits. */
+/** The table (default), or the cards themselves in a grid: `?view=grid`, as on a collection. */
+export type ItemView = "list" | "grid";
+const VIEWS = { list: { label: "Lista", Icon: ListIcon }, grid: { label: "Cuadrícula", Icon: LayoutGridIcon } };
+
+/** Name filter, sort and view links. `hidden` keeps other query params when the form submits. */
 export function ItemsToolbar({
   q,
   sort,
+  view,
   href,
   hidden,
 }: {
   q: string;
   sort: ItemSort;
+  view: ItemView;
   href: HrefFor;
   hidden: Record<string, string | undefined>;
 }) {
+  hidden = { ...hidden, view: view === "list" ? undefined : view };
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <form className="flex gap-2" role="search">
@@ -65,6 +74,24 @@ export function ItemsToolbar({
             {label}
           </Link>
         ))}
+      </nav>
+      <nav className="flex gap-1 text-sm" aria-label="Vista">
+        {(Object.entries(VIEWS) as Array<[ItemView, (typeof VIEWS)[ItemView]]>).map(
+          ([key, { label, Icon }]) => (
+            <Link
+              key={key}
+              href={href({ view: key === "list" ? undefined : key })}
+              aria-current={key === view ? "page" : undefined}
+              className={cn(
+                "flex items-center gap-1.5 rounded-md px-2.5 py-1.5",
+                key === view ? "bg-muted font-medium" : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <Icon className="size-4" />
+              {label}
+            </Link>
+          ),
+        )}
       </nav>
     </div>
   );
@@ -149,5 +176,6 @@ export function parseItemParams(sp: Record<string, string | string[] | undefined
   const rawSort = str(sp.sort);
   const sort: ItemSort = rawSort && rawSort in ITEM_SORTS ? (rawSort as ItemSort) : "value";
   const page = Math.max(1, Number(str(sp.page)) || 1);
-  return { q, sort, page };
+  const view: ItemView = str(sp.view) === "grid" ? "grid" : "list";
+  return { q, sort, page, view };
 }

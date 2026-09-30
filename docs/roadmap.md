@@ -79,6 +79,7 @@ compartidas, 7 días de precios guardados y 12 días de valor del inventario.
   llamada por carta, y se apaga solo al llegar al límite diario.
 - **Ajustes de alta plegados** (D40): una línea resumen con «Cambiar» en Mis cartas, la ficha,
   la expansión, la colección y el escáner, en vez de todos los selectores arriba.
+- **Cuadrícula en Mis cartas y en las ubicaciones** (`?view=grid`), y **miniaturas en las ediciones** de la ficha de carta.
 - **Navegación de escritorio como la del móvil** (D41): cuatro secciones, «Escanear» dorado y un
   buscador con «/»; el botón del asistente deja de ser dorado.
 - **«Buscar por número»** en el escáner: el número de la carta (y la expansión, si no hay una
