@@ -791,8 +791,8 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
     catálogo y las fotos compartidas son comunes.
   - Todos pueden usar «Identificar con IA», con el límite de 150 al día por cuenta (D31),
     pagado con la clave del dueño.
-  - **Pestañas** (2026-09-30, a petición del usuario): «Por revisar», «Revisadas», «Sin foto» y
-    «Cuentas», por `?tab=` como en las colecciones, no con el componente `ui/tabs` —que existe
+  - **Pestañas** (2026-09-30, a petición del usuario; sustituido por «Panel y dos áreas», más
+    abajo): «Por revisar», «Revisadas», «Sin foto» y «Cuentas», por `?tab=` como en las colecciones, no con el componente `ui/tabs` —que existe
     sin usarse y, al ser de cliente, mantiene montados todos los paneles—. La cola de fotos
     estaba mezclada con la gestión de cuentas, debajo de todo.
     - **Cada pestaña consulta solo lo suyo**, que es lo que aligera la página de verdad: antes
@@ -803,6 +803,21 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
       total en la etiqueta. Eran 116 de 121, así que el 96 % de la pantalla era trabajo ya hecho.
     - Las acciones revalidan `("/admin", "page")`, no la ruta a secas: si no, el contador de «Por
       revisar» seguiría diciendo 5 después de vaciarlo.
+  - **Panel y dos áreas** (2026-09-30, el mismo día, a petición del usuario): las cuatro pestañas
+    estaban al mismo nivel sin serlo —tres eran vistas de las fotos y la cuarta, las cuentas— y
+    `/admin` abría directamente en una cola, sin nada que dijera cómo está la app. Ahora:
+    - `/admin` es el **panel**: cuatro cifras con enlace (fotos por revisar, cartas sin foto,
+      cuentas, gasto de IA en 30 días), las 6 primeras fotos pendientes —con sus botones, porque
+      es lo único que suele haber que hacer— y un resumen de las cuentas, solo para leer.
+    - `/admin/fotos` tiene las tres vistas de fotos, por `?ver=` (`revisadas`, `sin-foto`), y
+      `/admin/cuentas`, el alta y la tabla. Son rutas, no `?tab=`: cada área tiene su URL y su
+      título, y el `layout.tsx` de `/admin` pone la navegación, con las pendientes en «Fotos».
+    - Sigue valiendo lo de abajo: cada vista consulta solo lo suyo. `adminPhotoCounts` va con
+      `cache()` de React porque lo piden el layout y la página en la misma petición.
+    - Las acciones revalidan `("/admin", "layout")`: el contador vive en el layout y en tres
+      páginas, y con `"page"` solo se refrescaría `/admin`.
+    - Descartado: un panel con gráficas de uso. Con dos o tres cuentas, cuatro cifras lo dicen
+      todo. Las URL `?tab=` no se redirigen: duraron unas horas.
   - La migración hace admin a la cuenta más antigua (la del dueño, creada con
     `seed:user`) y `user` al resto. `npm run seed:user` crea admins por defecto.
 - **Descartado:**

@@ -66,6 +66,8 @@ compartidas, 7 días de precios guardados y 12 días de valor del inventario.
   reverse holo tienen un segundo **+**.
 - **Admin:** revisión de fotos compartidas, lista de **cartas sin imagen** que alguien tiene en
   una ubicación o colección, y **«Añadir foto» desde la propia lista**.
+- **Admin, panel de control:** `/admin` resume lo pendiente y el uso; las fotos y las cuentas
+  tienen su propia página (`/admin/fotos`, `/admin/cuentas`) (D34).
 - **Mis cartas:** paginación con números, además de «Anterior» y «Siguiente».
 - **CI en cada push:** `typecheck`, `lint` y `test` en GitHub Actions, en `main` y en cada pull
   request. Genera antes los tipos de ruta (`next typegen`), que no están en el repo.

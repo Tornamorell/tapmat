@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { pool } from "@/db/client";
 
 export type AdminUserRow = {
@@ -85,14 +86,15 @@ export async function listCardsWithoutPhoto(limit = 200): Promise<AdminMissingPh
 }
 
 /**
- * What each tab of /admin has in it, without fetching any of it: the labels carry the numbers,
- * and every tab loads only its own rows.
+ * How many photos are in each view of /admin/fotos, without fetching any of them: the labels and
+ * the panel carry the numbers, and every view loads only its own rows. Cached per request, since
+ * the admin layout and the page under it both ask.
  */
-export async function adminPhotoCounts(): Promise<{
+export const adminPhotoCounts = cache(async (): Promise<{
   pending: number;
   reviewed: number;
   missing: number;
-}> {
+}> => {
   const { rows } = await pool.query<{ pending: number; reviewed: number; missing: number }>(
     `select
        (select count(*)::int from catalog_card_photos where reviewed_at is null) as pending,
@@ -105,7 +107,7 @@ export async function adminPhotoCounts(): Promise<{
        ) as missing`,
   );
   return rows[0] ?? { pending: 0, reviewed: 0, missing: 0 };
-}
+});
 
 /**
  * The shared photos (D30) for /admin, newest first: the ones waiting for review, or the ones

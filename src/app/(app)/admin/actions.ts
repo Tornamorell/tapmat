@@ -42,7 +42,7 @@ export async function createColleague(input: z.input<typeof newUser>): Promise<R
     console.error("[admin] createUser", error);
     return { error: "No se ha podido crear la cuenta." };
   }
-  revalidatePath("/admin", "page");
+  revalidatePath("/admin", "layout");
   return {};
 }
 
@@ -53,7 +53,7 @@ export async function changeRole(userId: string, role: Role): Promise<Result> {
   // Nobody can lock themselves (and maybe everyone) out of the admin pages.
   if (id === me.id) return { error: "No puedes cambiar tu propio rol." };
   await auth.api.setRole({ body: { userId: id, role: newRole }, headers: await headers() });
-  revalidatePath("/admin", "page");
+  revalidatePath("/admin", "layout");
   return {};
 }
 
@@ -71,7 +71,7 @@ export async function setDeactivated(userId: string, deactivated: boolean): Prom
   } else {
     await auth.api.unbanUser({ body: { userId: id }, headers: h });
   }
-  revalidatePath("/admin", "page");
+  revalidatePath("/admin", "layout");
   return {};
 }
 
@@ -98,7 +98,7 @@ export async function resetPassword(
     console.error("[admin] setUserPassword", error);
     return { error: "No se ha podido cambiar la contraseña." };
   }
-  revalidatePath("/admin", "page");
+  revalidatePath("/admin", "layout");
   return {};
 }
 
@@ -110,6 +110,6 @@ export async function markPhotoReviewed(catalogCardId: string): Promise<Result> 
     .update(catalogCardPhotos)
     .set({ reviewedAt: new Date(), reviewedBy: me.id })
     .where(eq(catalogCardPhotos.catalogCardId, id));
-  revalidatePath("/admin", "page");
+  revalidatePath("/admin", "layout");
   return {};
 }

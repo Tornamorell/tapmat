@@ -1,209 +1,172 @@
-import type { Metadata } from "next";
+import { ArrowRightIcon } from "lucide-react";
 import Link from "next/link";
-import { CardPhotoButton } from "@/components/card-photo-button";
-import { CardThumb } from "@/components/card-thumb";
-import { cardPhotoUrl } from "@/lib/card-photo";
-import {
-  adminPhotoCounts,
-  listCardsWithoutPhoto,
-  listPhotosForReview,
-  listUsersForAdmin,
-} from "@/lib/queries/admin";
+import { Badge } from "@/components/ui/badge";
+import { formatInt } from "@/lib/format";
+import { adminPhotoCounts, listPhotosForReview, listUsersForAdmin } from "@/lib/queries/admin";
+import { ROLE_LABELS, ROLES, type Role } from "@/lib/roles";
 import { requireAdmin } from "@/lib/session";
 import { cn } from "@/lib/utils";
-import { NewUserForm } from "./new-user-form";
+import { toPhotoItem } from "./photo-item";
 import { PhotoReview } from "./photo-review";
-import { UsersTable } from "./users-table";
 
-export const metadata: Metadata = { title: "Administración" };
+/** How many pending photos the panel shows before sending you to the queue: one row on desktop. */
+const PREVIEW = 6;
 
-const TABS = ["revisar", "revisadas", "sin-foto", "cuentas"] as const;
-type Tab = (typeof TABS)[number];
+const usd = (n: number) => `${n.toFixed(2)} $`;
+const date = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("es-ES") : "—");
 
 /**
- * The admin panel, one tab at a time. Reviewing photos and managing accounts were stacked on one
- * page, so the queue that needs attention sat under everything else — and the page fetched all
- * of it every time: 121 photos to surface the 5 that were pending. Each tab now loads only its
- * own rows, and the counts come from a separate, cheap query so the labels stay honest.
+ * The control panel: what's waiting for you and how the app is being used, at a glance. The
+ * work itself lives in «Fotos» and «Cuentas»; the few photos pending review can be dealt with
+ * from here, since that's the one thing that usually needs doing.
  */
-export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
+export default async function AdminPanelPage() {
   const me = await requireAdmin();
-  const sp = await searchParams;
-  const asked = typeof sp.tab === "string" ? sp.tab : undefined;
-  const tab: Tab = (TABS as readonly string[]).includes(asked ?? "") ? (asked as Tab) : "revisar";
-
-  const counts = await adminPhotoCounts();
-  const [users, photos, missing] = await Promise.all([
-    tab === "cuentas" ? listUsersForAdmin() : [],
-    tab === "revisar" || tab === "revisadas" ? listPhotosForReview(tab === "revisadas") : [],
-    tab === "sin-foto" ? listCardsWithoutPhoto() : [],
+  const [counts, users, pending] = await Promise.all([
+    adminPhotoCounts(),
+    listUsersForAdmin(),
+    listPhotosForReview(false, PREVIEW),
   ]);
 
+  const deactivated = users.filter((u) => u.banned).length;
+  const scanCost = users.reduce((sum, u) => sum + u.aiCost30d, 0);
+  const chatCost = users.reduce((sum, u) => sum + u.chatCost30d, 0);
+
   return (
-    <div className="space-y-6">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Administración</h1>
-        <p className="text-muted-foreground max-w-prose text-sm">
-          Las cuentas de Tapmat y las fotos que comparte la gente. No hay registro abierto: las
-          cuentas de tus colegas las creas tú. Cada uno ve solo sus cartas, colecciones y
-          ubicaciones; el catálogo y las fotos son de todos.
-        </p>
-      </div>
+    <div className="space-y-10">
+      <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatTile
+          label="Fotos por revisar"
+          value={formatInt(counts.pending)}
+          hint={`${formatInt(counts.reviewed)} revisadas`}
+          href="/admin/fotos"
+          highlight={counts.pending > 0}
+        />
+        <StatTile
+          label="Cartas sin foto"
+          value={formatInt(counts.missing)}
+          hint="En ubicaciones o colecciones"
+          href="/admin/fotos?ver=sin-foto"
+        />
+        <StatTile
+          label="Cuentas"
+          value={formatInt(users.length)}
+          hint={
+            deactivated
+              ? `${deactivated} ${deactivated === 1 ? "desactivada" : "desactivadas"}`
+              : "Todas activas"
+          }
+          href="/admin/cuentas"
+        />
+        <StatTile
+          label="IA, 30 días"
+          value={usd(scanCost + chatCost)}
+          hint={`Escáner ${usd(scanCost)} · Asistente ${usd(chatCost)}`}
+          href="/admin/cuentas"
+        />
+      </dl>
 
-      <AdminTabs tab={tab} counts={counts} />
-
-      {tab === "revisar" && (
-        <section className="space-y-3">
-          <p className="text-muted-foreground max-w-prose text-sm">
-            Las que ha compartido alguien y nadie ha comprobado todavía, al escanear o desde la
-            ficha: las ven todos. Marca como correctas las que estén bien. Si una no es la carta o
-            se ve mal, elimínala y la carta vuelve a quedarse sin imagen.
+      <section className="space-y-3">
+        <SectionHeading
+          title="Por revisar"
+          href="/admin/fotos"
+          link={counts.pending > pending.length ? `Ver las ${counts.pending}` : "Todas las fotos"}
+        />
+        {pending.length ? (
+          <PhotoReview photos={pending.map(toPhotoItem)} />
+        ) : (
+          <p className="text-muted-foreground text-sm">
+            Nada por revisar: todas las fotos compartidas están comprobadas.
           </p>
-          {photos.length ? (
-            <PhotoReview photos={photos.map(toPhotoItem)} />
-          ) : (
-            <p className="text-muted-foreground text-sm">
-              Nada por revisar: todas las fotos compartidas están comprobadas.
-            </p>
-          )}
-        </section>
-      )}
+        )}
+      </section>
 
-      {tab === "revisadas" && (
-        <section className="space-y-3">
-          <p className="text-muted-foreground max-w-prose text-sm">
-            Las que ya has dado por buenas, de la más reciente a la más antigua. Están aquí por si
-            quieres revisar una decisión: si alguien cambia una foto, vuelve sola a «Por revisar».
-            {counts.reviewed > photos.length && (
-              <>
-                {" "}
-                Se muestran las {photos.length} últimas de {counts.reviewed}.
-              </>
-            )}
-          </p>
-          {photos.length ? (
-            <PhotoReview photos={photos.map(toPhotoItem)} />
-          ) : (
-            <p className="text-muted-foreground text-sm">Todavía no has dado ninguna por buena.</p>
-          )}
-        </section>
-      )}
-
-      {tab === "sin-foto" && (
-        <section className="space-y-3">
-          <p className="text-muted-foreground max-w-prose text-sm">
-            Cartas que alguien guarda en una ubicación o ha puesto en una colección y no tienen
-            imagen, ni la de su fuente ni una compartida. Hazles la foto aquí mismo, sin entrar en
-            cada una: se recorta con la forma de la carta y la ven todos. En el móvil, «Añadir foto»
-            abre la cámara.
-          </p>
-          {missing.length ? (
-            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-              {missing.map((m) => (
-                <li key={m.catalogCardId} className="space-y-1.5">
-                  <Link href={`/cards/${m.catalogCardId}`} className="block">
-                    <CardThumb src={null} alt={m.name} size="md" className="w-full!" />
-                  </Link>
-                  <div className="space-y-0.5 text-xs leading-tight">
-                    <p className="truncate font-medium" title={m.name}>
-                      {m.name}
-                    </p>
-                    <p className="text-muted-foreground truncate">
-                      {m.setCode.toUpperCase()} #{m.number}
-                    </p>
-                    <p className="text-muted-foreground truncate">
-                      {[
-                        m.copies > 0 && `${m.copies} ${m.copies === 1 ? "copia" : "copias"}`,
-                        m.collections > 0 &&
-                          `${m.collections} ${m.collections === 1 ? "colección" : "colecciones"}`,
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </p>
-                  </div>
-                  {/* The same button as the card's page: the photo goes in without leaving here. */}
-                  <CardPhotoButton catalogCardId={m.catalogCardId} hasPhoto={false} />
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-muted-foreground text-sm">
-              Todas las cartas que hay en ubicaciones y colecciones tienen imagen.
-            </p>
-          )}
-        </section>
-      )}
-
-      {tab === "cuentas" && (
-        <section className="space-y-4">
-          <p className="text-muted-foreground max-w-prose text-sm">
-            Cada cuenta puede identificar hasta 150 cartas al día con la IA, que se paga con tu
-            clave.
-          </p>
-          <NewUserForm />
-          <UsersTable users={users} meId={me.id} />
-        </section>
-      )}
+      <section className="space-y-3">
+        <SectionHeading title="Cuentas" href="/admin/cuentas" link="Gestionar cuentas" />
+        <ul className="bg-card divide-y rounded-xl border">
+          {users.map((u) => {
+            const role = (ROLES as readonly string[]).includes(u.role ?? "") ? (u.role as Role) : "user";
+            return (
+              <li
+                key={u.id}
+                className={cn(
+                  "flex flex-wrap items-center gap-x-6 gap-y-1 px-4 py-3 text-sm",
+                  u.banned && "opacity-60",
+                )}
+              >
+                <div className="min-w-0 flex-1 basis-48">
+                  <p className="flex items-center gap-2 font-medium">
+                    <span className="truncate">
+                      {u.name}
+                      {u.id === me.id && <span className="text-muted-foreground font-normal"> (tú)</span>}
+                    </span>
+                    {role === "admin" && <Badge variant="secondary">{ROLE_LABELS[role]}</Badge>}
+                    {u.banned && <Badge variant="destructive">Desactivada</Badge>}
+                  </p>
+                  <p className="text-muted-foreground truncate text-xs">{u.email}</p>
+                </div>
+                <Figure label="Cartas" value={formatInt(u.copies)} />
+                <Figure label="IA hoy" value={formatInt(u.aiToday)} />
+                <Figure label="IA, 30 días" value={usd(u.aiCost30d + u.chatCost30d)} />
+                <Figure label="Última vez" value={date(u.lastSeen)} />
+              </li>
+            );
+          })}
+        </ul>
+      </section>
     </div>
   );
 }
 
-/** A photo row as the review grid wants it. */
-function toPhotoItem(p: Awaited<ReturnType<typeof listPhotosForReview>>[number]) {
-  return {
-    catalogCardId: p.catalogCardId,
-    name: p.name,
-    setLabel: `${p.setCode.toUpperCase()} #${p.number}`,
-    src: cardPhotoUrl(p.catalogCardId, p.updatedAt),
-    contributor: p.contributor,
-    source: p.source,
-    dateLabel: p.updatedAt.toLocaleDateString("es-ES"),
-    reviewed: !!p.reviewedAt,
-    reviewer: p.reviewer,
-  };
+function StatTile({
+  label,
+  value,
+  hint,
+  href,
+  highlight,
+}: {
+  label: string;
+  value: string;
+  hint: string;
+  href: string;
+  /** Something here is waiting for the admin. */
+  highlight?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "bg-card hover:border-primary/60 block rounded-xl border p-3 transition-colors sm:p-4",
+        highlight && "border-primary/50",
+      )}
+    >
+      <dt className="text-muted-foreground text-sm">{label}</dt>
+      <dd className={cn("text-2xl font-bold tabular-nums", highlight && "text-primary")}>{value}</dd>
+      <dd className="text-muted-foreground text-xs">{hint}</dd>
+    </Link>
+  );
 }
 
-function AdminTabs({
-  tab,
-  counts,
-}: {
-  tab: Tab;
-  counts: { pending: number; reviewed: number; missing: number };
-}) {
-  const items: Array<{ key: Tab; label: string; count: number | null }> = [
-    { key: "revisar", label: "Por revisar", count: counts.pending },
-    { key: "revisadas", label: "Revisadas", count: counts.reviewed },
-    { key: "sin-foto", label: "Sin foto", count: counts.missing },
-    { key: "cuentas", label: "Cuentas", count: null },
-  ];
+function SectionHeading({ title, href, link }: { title: string; href: string; link: string }) {
   return (
-    <nav aria-label="Secciones" className="bg-muted inline-flex flex-wrap rounded-lg p-0.5 text-sm">
-      {items.map((t) => (
-        <Link
-          key={t.key}
-          // «Por revisar» is the default, so it's the bare URL: no ?tab= left behind.
-          href={t.key === "revisar" ? "/admin" : `/admin?tab=${t.key}`}
-          aria-current={tab === t.key ? "page" : undefined}
-          className={cn(
-            "flex items-center gap-1.5 rounded-md px-3 py-1 transition-colors",
-            tab === t.key
-              ? "bg-background font-medium shadow-sm"
-              : "text-muted-foreground hover:text-foreground",
-          )}
-        >
-          {t.label}
-          {t.count !== null && (
-            <span
-              className={cn(
-                "text-xs tabular-nums",
-                t.key === "revisar" && t.count > 0 ? "text-primary font-semibold" : "opacity-60",
-              )}
-            >
-              {t.count}
-            </span>
-          )}
-        </Link>
-      ))}
-    </nav>
+    <div className="flex items-baseline justify-between gap-4">
+      <h2 className="text-lg font-bold">{title}</h2>
+      <Link
+        href={href}
+        className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-sm"
+      >
+        {link}
+        <ArrowRightIcon className="size-3.5" />
+      </Link>
+    </div>
+  );
+}
+
+function Figure({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="w-20 sm:text-right">
+      <p className="text-muted-foreground text-xs">{label}</p>
+      <p className="tabular-nums">{value}</p>
+    </div>
   );
 }
