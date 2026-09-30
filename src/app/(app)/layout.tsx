@@ -5,7 +5,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { isAdmin, requireUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { AssistantDock } from "./assistant/dock";
-import { DesktopNav, MobileTabBar } from "./nav-links";
+import { DesktopNav, DesktopScanButton, HeaderSearch, MobileTabBar } from "./nav-links";
 import { SignOutButton } from "./sign-out-button";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
@@ -20,13 +20,15 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           </Link>
           <DesktopNav />
           <div className="ml-auto flex items-center gap-1">
+            <HeaderSearch />
             <Link
               href="/search"
-              className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "md:hidden")}
+              className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "lg:hidden")}
               aria-label="Buscar"
             >
               <SearchIcon />
             </Link>
+            <DesktopScanButton />
             {isAdmin(user) && (
               <Link
                 href="/admin"

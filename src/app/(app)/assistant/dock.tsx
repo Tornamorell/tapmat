@@ -47,7 +47,9 @@ export function AssistantDock({ userId }: { userId: string }) {
         onClick={() => setOpen(true)}
         aria-label="Abrir el asistente"
         title="Asistente"
-        className="bg-primary text-primary-foreground fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-40 flex size-12 items-center justify-center rounded-full shadow-lg transition-transform hover:scale-105 md:right-6 md:bottom-6"
+        // Quiet, not gold: on a phone it sat right over the scanner's gold button in the tab bar,
+        // and two gold circles side by side asked which one was the main action.
+        className="bg-card text-primary hover:border-primary/60 fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-40 flex size-10 items-center justify-center rounded-full border shadow-lg transition-colors md:right-6 md:bottom-6 md:size-12"
       >
         {a.busy ? <LoaderCircleIcon className="size-5 animate-spin" /> : <SparklesIcon className="size-5" />}
       </button>

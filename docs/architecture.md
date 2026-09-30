@@ -106,9 +106,11 @@ D26).
 
 En el móvil (por debajo de `md`), la navegación es una barra de pestañas fija abajo: Resumen,
 Catálogo, **Escanear** en el centro, Mis cartas y Colecciones. A las ubicaciones se llega desde
-Mis cartas. La búsqueda y el botón de salir van como iconos en la barra superior. Desde `md`
-hacia arriba se ven todos los enlaces en texto en la barra superior
-(`src/app/(app)/nav-links.tsx`).
+Mis cartas. La búsqueda y el botón de salir van como iconos en la barra superior. Desde `md`, la
+barra superior tiene **las mismas cuatro secciones** en texto, «Escanear» como botón dorado y,
+desde `lg`, un buscador que se enfoca con «/» (`src/app/(app)/nav-links.tsx`, D41). En las dos:
+los mazos y los wants cuelgan de Colecciones (el selector de arriba de esas páginas), las
+ubicaciones de Mis cartas, y el asistente es el botón flotante.
 
 ## Reglas que no hay que romper
 

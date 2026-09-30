@@ -872,7 +872,8 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
     el 2026-09-14, abajo); si no, los de la edición preferida o, sin ella, la imagen más
     reciente y el precio de la edición más barata.
   - `/decks` lista los mazos. `/decks/[id]` muestra las cartas agrupadas por tipo y el
-    análisis. Se entra desde «Mazos» en la barra y desde el selector Colecciones / Mazos.
+    análisis. Se entra desde el selector Colecciones / Wants / Mazos (desde D41 ya no está en
+    la barra).
   - Importar pegando la lista; se reconocen el nombre completo o la cara delantera, sin
     fichas ni cartas de arte, y la edición si la línea la indica. Exportar copia la lista con
     las cabeceras de Moxfield y Arena.
@@ -1228,3 +1229,28 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
     tiene que estar a un toque de donde se añade.
 - **Revisar cuando:** se añada a menudo a destinos distintos en la misma visita y el toque de
   más moleste.
+
+## D41 · La misma navegación en escritorio que en el móvil — 2026-09-30 · provisional
+
+- **Contexto:** en el repaso del diseño, la barra de escritorio tenía nueve enlaces —Resumen,
+  Catálogo, Mis cartas, Colecciones, Mazos, Asistente, Ubicaciones, Escanear y Buscar— y cuatro
+  estaban repetidos: Mazos también en el selector de Colecciones, el Asistente también como
+  botón flotante, las Ubicaciones también en Mis cartas, y Buscar era un enlace a una página. En
+  el móvil, el botón flotante del asistente era un círculo dorado justo encima del de Escanear,
+  también dorado.
+- **Decisión:**
+  - Escritorio con las mismas secciones que el móvil: **Resumen, Catálogo, Mis cartas y
+    Colecciones**, con «Mis cartas» activa también en `/locations` y «Colecciones» en `/decks` y
+    `/wants`.
+  - **«Escanear» como botón dorado** a la derecha, el equivalente del botón central del móvil.
+  - **Buscador en la barra** desde `lg`, que se enfoca con «/» y lleva a `/search?q=`. Entre `md`
+    y `lg` no cabe, y la lupa enlaza a la página, como en el móvil.
+  - **El asistente, discreto:** fondo de tarjeta con borde y el icono en oro, 40 px en el móvil y
+    48 en escritorio. Solo hay un botón dorado por pantalla, el de la acción principal.
+- **Descartado:**
+  - Un menú «Más» con lo que sobraba: esconde las mismas cosas un nivel más abajo, cuando ya
+    tienen una entrada en su contexto.
+  - Una paleta de comandos (⌘K): más trabajo del que merece una búsqueda de cartas; «/» cubre lo
+    mismo.
+- **Revisar cuando:** los mazos se usen tanto como las colecciones y merezcan entrada propia, o
+  el asistente pierda su botón flotante.
