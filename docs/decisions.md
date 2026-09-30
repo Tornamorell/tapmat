@@ -606,8 +606,8 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
     enlazar las fotos después de cada lote (`restorePhotoUrls()`).
   - Espacio: unos 20 MB por álbum entero. Se vigila el medio GB de Neon, y si aprieta se pasan
     a un almacenamiento de ficheros como Cloudflare R2.
-  - **Actualización (2026-09-16):** en `/admin`, debajo de las fotos compartidas, salen también
-    las **cartas sin imagen que alguien guarda en una ubicación o ha puesto en una colección**
+  - **Actualización (2026-09-16):** en `/admin` salen también las **cartas sin imagen que
+    alguien guarda en una ubicación o ha puesto en una colección**
     (`listCardsWithoutPhoto`), con cuántas copias y en cuántas colecciones están. Son las que se
     ven con el hueco gris al usar la app, así que son las que compensa fotografiar: el resto del
     catálogo sin imagen (miles) no se lista.
@@ -791,6 +791,18 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
     catálogo y las fotos compartidas son comunes.
   - Todos pueden usar «Identificar con IA», con el límite de 150 al día por cuenta (D31),
     pagado con la clave del dueño.
+  - **Pestañas** (2026-09-30, a petición del usuario): «Por revisar», «Revisadas», «Sin foto» y
+    «Cuentas», por `?tab=` como en las colecciones, no con el componente `ui/tabs` —que existe
+    sin usarse y, al ser de cliente, mantiene montados todos los paneles—. La cola de fotos
+    estaba mezclada con la gestión de cuentas, debajo de todo.
+    - **Cada pestaña consulta solo lo suyo**, que es lo que aligera la página de verdad: antes
+      pedía las 121 fotos, las cuentas y las cartas sin imagen siempre, aunque solo fueras a
+      crear un usuario. Los números de las etiquetas salen de un `count(*)` aparte
+      (`adminPhotoCounts`), barato y sin traer filas.
+    - **Las revisadas ya no están siempre delante:** son las últimas 60 de las que haya, con el
+      total en la etiqueta. Eran 116 de 121, así que el 96 % de la pantalla era trabajo ya hecho.
+    - Las acciones revalidan `("/admin", "page")`, no la ruta a secas: si no, el contador de «Por
+      revisar» seguiría diciendo 5 después de vaciarlo.
   - La migración hace admin a la cuenta más antigua (la del dueño, creada con
     `seed:user`) y `user` al resto. `npm run seed:user` crea admins por defecto.
 - **Descartado:**

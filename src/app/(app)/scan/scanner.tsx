@@ -1735,7 +1735,10 @@ export function Scanner({
         {/* What the reader is doing, under the top bar. */}
         <p
           className={cn(
-            "absolute top-[calc(max(env(safe-area-inset-top),0.75rem)+3.25rem)] left-1/2 z-10 max-w-[65%] -translate-x-1/2 truncate rounded-full bg-black/60 px-3 py-1 text-center text-xs",
+            // Not truncated, and wider: these lines carry the diagnosis («…no está en el
+            // catálogo de esta expansión» says the album reached the request), and a status you
+            // can't finish reading is no status. Up to three lines, still clear of the tools.
+            "absolute top-[calc(max(env(safe-area-inset-top),0.75rem)+3.25rem)] left-1/2 z-10 line-clamp-3 max-w-[85%] -translate-x-1/2 rounded-2xl bg-black/60 px-3 py-1 text-center text-xs text-balance",
             adjusting && "hidden",
           )}
           role="status"

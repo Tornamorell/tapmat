@@ -84,8 +84,35 @@ export async function listCardsWithoutPhoto(limit = 200): Promise<AdminMissingPh
   return rows;
 }
 
-/** The shared photos (D30) for /admin: the ones waiting for review first, then the newest. */
-export async function listPhotosForReview(limit = 200): Promise<AdminPhotoRow[]> {
+/**
+ * What each tab of /admin has in it, without fetching any of it: the labels carry the numbers,
+ * and every tab loads only its own rows.
+ */
+export async function adminPhotoCounts(): Promise<{
+  pending: number;
+  reviewed: number;
+  missing: number;
+}> {
+  const { rows } = await pool.query<{ pending: number; reviewed: number; missing: number }>(
+    `select
+       (select count(*)::int from catalog_card_photos where reviewed_at is null) as pending,
+       (select count(*)::int from catalog_card_photos where reviewed_at is not null) as reviewed,
+       (select count(*)::int from catalog_cards c
+         where c.image_small is null
+           and (exists (select 1 from collection_cards cc where cc.catalog_card_id = c.id)
+                or exists (select 1 from items i
+                            where i.catalog_card_id = c.id and i.location_id is not null))
+       ) as missing`,
+  );
+  return rows[0] ?? { pending: 0, reviewed: 0, missing: 0 };
+}
+
+/**
+ * The shared photos (D30) for /admin, newest first: the ones waiting for review, or the ones
+ * already checked. Split in two because they answer different questions — one is a queue, the
+ * other a record — and the record is the one that grows without end.
+ */
+export async function listPhotosForReview(reviewed: boolean, limit = 60): Promise<AdminPhotoRow[]> {
   const { rows } = await pool.query<AdminPhotoRow>(
     `select p.catalog_card_id as "catalogCardId", c.name, c.set_code as "setCode",
             c.collector_number as number, p.source, u.name as contributor,
@@ -94,9 +121,10 @@ export async function listPhotosForReview(limit = 200): Promise<AdminPhotoRow[]>
      join catalog_cards c on c.id = p.catalog_card_id
      left join "user" u on u.id = p.contributed_by
      left join "user" r on r.id = p.reviewed_by
-     order by p.reviewed_at is not null, p.updated_at desc
+     where (p.reviewed_at is not null) = $2
+     order by p.updated_at desc
      limit $1`,
-    [limit],
+    [limit, reviewed],
   );
   return rows;
 }

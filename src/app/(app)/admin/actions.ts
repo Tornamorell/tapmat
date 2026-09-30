@@ -25,7 +25,10 @@ export async function createColleague(input: z.input<typeof newUser>): Promise<R
   await requireAdmin();
   const parsed = newUser.safeParse({ ...input, email: input.email?.trim().toLowerCase() });
   if (!parsed.success) {
-    return { error: "Revisa los datos: un nombre, un correo válido y una contraseña de 8 caracteres o más." };
+    return {
+      error:
+        "Revisa los datos: un nombre, un correo válido y una contraseña de 8 caracteres o más.",
+    };
   }
   const [taken] = await db
     .select({ id: user.id })
@@ -39,7 +42,7 @@ export async function createColleague(input: z.input<typeof newUser>): Promise<R
     console.error("[admin] createUser", error);
     return { error: "No se ha podido crear la cuenta." };
   }
-  revalidatePath("/admin");
+  revalidatePath("/admin", "page");
   return {};
 }
 
@@ -50,7 +53,7 @@ export async function changeRole(userId: string, role: Role): Promise<Result> {
   // Nobody can lock themselves (and maybe everyone) out of the admin pages.
   if (id === me.id) return { error: "No puedes cambiar tu propio rol." };
   await auth.api.setRole({ body: { userId: id, role: newRole }, headers: await headers() });
-  revalidatePath("/admin");
+  revalidatePath("/admin", "page");
   return {};
 }
 
@@ -61,11 +64,14 @@ export async function setDeactivated(userId: string, deactivated: boolean): Prom
   if (id === me.id) return { error: "No puedes desactivar tu propia cuenta." };
   const h = await headers();
   if (deactivated) {
-    await auth.api.banUser({ body: { userId: id, banReason: "Desactivada por un administrador" }, headers: h });
+    await auth.api.banUser({
+      body: { userId: id, banReason: "Desactivada por un administrador" },
+      headers: h,
+    });
   } else {
     await auth.api.unbanUser({ body: { userId: id }, headers: h });
   }
-  revalidatePath("/admin");
+  revalidatePath("/admin", "page");
   return {};
 }
 
@@ -74,7 +80,11 @@ export async function setDeactivated(userId: string, deactivated: boolean): Prom
  * on. `closeSessions` signs them out everywhere, so a device left signed in with the old one stops
  * working too. Not for one's own account, like the rest of this page.
  */
-export async function resetPassword(userId: string, password: string, closeSessions: boolean): Promise<Result> {
+export async function resetPassword(
+  userId: string,
+  password: string,
+  closeSessions: boolean,
+): Promise<Result> {
   const me = await requireAdmin();
   const id = z.string().min(1).parse(userId);
   if (id === me.id) return { error: "Tu propia contraseña no se cambia desde aquí." };
@@ -88,7 +98,7 @@ export async function resetPassword(userId: string, password: string, closeSessi
     console.error("[admin] setUserPassword", error);
     return { error: "No se ha podido cambiar la contraseña." };
   }
-  revalidatePath("/admin");
+  revalidatePath("/admin", "page");
   return {};
 }
 
@@ -100,6 +110,6 @@ export async function markPhotoReviewed(catalogCardId: string): Promise<Result> 
     .update(catalogCardPhotos)
     .set({ reviewedAt: new Date(), reviewedBy: me.id })
     .where(eq(catalogCardPhotos.catalogCardId, id));
-  revalidatePath("/admin");
+  revalidatePath("/admin", "page");
   return {};
 }
