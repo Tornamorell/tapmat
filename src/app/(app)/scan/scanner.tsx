@@ -3,6 +3,7 @@
 import {
   ClockIcon,
   FlashlightIcon,
+  HashIcon,
   ImageUpIcon,
   LoaderCircleIcon,
   MinusIcon,
@@ -32,6 +33,7 @@ import {
   finishFor,
 } from "@/components/stack-fields";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { FINISH_LABELS, formatEur, placeLabel } from "@/lib/format";
 import { SetPicker, type SetOption } from "@/components/set-picker";
 import { gameById, rarityLabel, rarityRank } from "@/lib/games";
@@ -317,6 +319,8 @@ export function Scanner({
   // replacing the photo someone else already took.
   const [photoCount, setPhotoCount] = useState(0);
   const [replacing, setReplacing] = useState<ScanMatch | null>(null);
+  // «Buscar por número»: the form over the camera, for a card neither the reader nor the AI got.
+  const [numberOpen, setNumberOpen] = useState(false);
   // The photo just saved, to look at before moving on: it's what the server stored, straightened
   // and cropped, not what was in the guide. Cleared when the card leaves the view.
   const [lastPhoto, setLastPhoto] = useState<{ id: string; name: string; url: string } | null>(
@@ -385,7 +389,8 @@ export function Scanner({
   };
   // Paused while the history is open, the AI is identifying or the guide is being adjusted:
   // nothing added behind the user's back.
-  const paused = historyOpen || identifying || adjusting || !!replacing;
+  // Typing a number: nothing else may be added, nor the status change under the form.
+  const paused = historyOpen || identifying || adjusting || !!replacing || numberOpen;
   const settings = useRef({ defaults, fixedSet, locations, paused, nameLayout, place });
   useEffect(() => {
     settings.current = { defaults, fixedSet, locations, paused, nameLayout, place };
@@ -1102,6 +1107,8 @@ export function Scanner({
     progress();
     setChoices(null);
     setStatus("Identificando con IA…");
+    // Whether it came back with a card (added, or a choice on screen): if not, see `finally`.
+    let gotCard = false;
     try {
       const blob = await guidePhoto();
       if (!blob) throw new Error("No photo");
@@ -1141,23 +1148,9 @@ export function Scanner({
         );
         return;
       }
+      gotCard = true;
       if (matches.length === 1) {
-        const photoMode = settings.current.defaults.photoMode;
-        // The card just dealt with, identified again (a second tap): not a second copy, and in
-        // «Solo fotos» not a second photo either. Each mode has its own witness.
-        if (photoMode ? s.photoHoldId === matches[0].id : s.holdId === matches[0].id) {
-          setStatus(
-            photoMode
-              ? `«${matches[0].name}»: ya tiene su foto de esta sesión.`
-              : `«${matches[0].name}» ya está añadida: si es otra copia, pulsa +.`,
-          );
-          return;
-        }
-        if (!photoMode) {
-          s.holdId = matches[0].id;
-          s.votes = [];
-        }
-        await add(matches[0], null);
+        await addPicked(matches[0]);
         return;
       }
       s.choicesKey = matches.map((m) => m.id).join();
@@ -1169,7 +1162,64 @@ export function Scanner({
       setStatus("No se ha podido identificar la carta.");
     } finally {
       setIdentifying(false);
+      // In «Solo fotos» the AI is usually the last try: an album page nobody can read. Its number
+      // is printed on the album, though, so offer to type it rather than leave the card behind.
+      if (settings.current.defaults.photoMode && !gotCard) setNumberOpen(true);
     }
+  }
+
+  /**
+   * A card found by a deliberate action — the AI or a typed number — rather than by the read
+   * loop's vote. It's added (or, in «Solo fotos», photographed) unless it's the card just dealt
+   * with: asking twice isn't a second copy, nor a second photo. Each mode has its own witness.
+   */
+  async function addPicked(match: ScanMatch) {
+    const s = readState.current;
+    const photoMode = settings.current.defaults.photoMode;
+    if (photoMode ? s.photoHoldId === match.id : s.holdId === match.id) {
+      setStatus(
+        photoMode
+          ? `«${match.name}»: ya tiene su foto de esta sesión.`
+          : `«${match.name}» ya está añadida: si es otra copia, pulsa +.`,
+      );
+      return;
+    }
+    if (!photoMode) {
+      s.holdId = match.id;
+      s.votes = [];
+    }
+    await add(match, null);
+  }
+
+  /**
+   * «Buscar por número»: the number printed on the card (or next to its spot in the album), typed
+   * in. With the set fixed that's enough; without it, the set's code is needed too — a number
+   * alone is in every set. Returns what went wrong, for the form to show, or null when it found
+   * something: one card is added or photographed like any other, several go to the chooser.
+   */
+  async function findByNumber(number: string, setCode: string): Promise<string | null> {
+    const { fixedSet } = settings.current;
+    const code = setCode.trim().toUpperCase();
+    const n = number.trim().replace(/^#/, "");
+    if (!n) return "Escribe el número.";
+    if (!fixedSet && !code) return "Escribe también el código de la expansión, o fíjala antes.";
+    let matches: ScanMatch[];
+    try {
+      matches = await lookupLine({ number: n, total: null, setCodes: fixedSet ? [] : [code], lang: null });
+    } catch {
+      return "No se ha podido buscar. Prueba otra vez.";
+    }
+    const where = fixedSet ? fixedSet.code.toUpperCase() : code;
+    if (!matches.length) return `No hay ninguna carta #${n} en ${where}.`;
+    setNumberOpen(false);
+    if (matches.length === 1) {
+      await addPicked(matches[0]);
+      return null;
+    }
+    readState.current.choicesKey = matches.map((m) => m.id).join();
+    setChoices({ matches, lang: null });
+    setStatus(`Hay ${matches.length} cartas #${n} en ${where}: elige cuál es.`);
+    return null;
   }
 
   /** «Para luego»: a photo of what's in the guide goes to the review queue (/review, D25). */
@@ -1301,6 +1351,7 @@ export function Scanner({
     runningRef.current = false;
     setRunning(false);
     setChoices(null);
+    setNumberOpen(false);
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
@@ -1774,6 +1825,13 @@ export function Scanner({
             </ToolButton>
           )}
           <ToolButton
+            label="Buscar por número"
+            pressed={numberOpen}
+            onClick={() => setNumberOpen((open) => !open)}
+          >
+            <HashIcon />
+          </ToolButton>
+          <ToolButton
             label={pendingCount ? `Para luego (${pendingCount} por revisar)` : "Para luego"}
             onClick={saveForLater}
             disabled={saving}
@@ -1961,6 +2019,16 @@ export function Scanner({
         )}
         {/* The read loop needs the canvas even when the debug view is hidden. */}
         {!showDebug && <canvas ref={canvasRef} className="hidden" />}
+
+        {/* At the top, not the bottom: the phone's keyboard comes up from below and would cover it. */}
+        {numberOpen && !adjusting && (
+          <NumberSearch
+            fixedCode={fixedCode ?? null}
+            photoMode={defaults.photoMode}
+            onSearch={findByNumber}
+            onClose={() => setNumberOpen(false)}
+          />
+        )}
 
         {adjusting && (
           <div className="absolute inset-x-3 top-[max(env(safe-area-inset-top),0.75rem)] z-30 space-y-2 rounded-2xl bg-black/80 p-3 backdrop-blur">
@@ -2246,6 +2314,96 @@ function SessionList({
         );
       })}
     </ul>
+  );
+}
+
+/**
+ * «Buscar por número» over the camera: the card's number, and its set's code when no set is
+ * fixed. The card stays in the guide meanwhile — in «Solo fotos» that's the photo that's saved.
+ */
+function NumberSearch({
+  fixedCode,
+  photoMode,
+  onSearch,
+  onClose,
+}: {
+  fixedCode: string | null;
+  photoMode: boolean;
+  onSearch: (number: string, setCode: string) => Promise<string | null>;
+  onClose: () => void;
+}) {
+  const [number, setNumber] = useState("");
+  const [setCode, setSetCode] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [searching, setSearching] = useState(false);
+  const field = "h-9 border-white/25 bg-white/10 text-white placeholder:text-white/40";
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setSearching(true);
+    setError(null);
+    try {
+      setError(await onSearch(number, setCode));
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  return (
+    <form
+      onSubmit={submit}
+      className="absolute inset-x-3 top-[max(env(safe-area-inset-top),0.75rem)] z-30 space-y-2 rounded-2xl bg-black/85 p-3 text-sm backdrop-blur"
+    >
+      <p className="font-medium">Buscar por número</p>
+      <p className="text-xs text-white/70">
+        {fixedCode ? `El número de la carta en ${fixedCode}.` : "El código de la expansión y el número de la carta."}{" "}
+        {photoMode
+          ? "Deja la carta en el recuadro: la foto se hace al encontrarla."
+          : "Se añade al encontrarla, como si la hubiera leído."}
+      </p>
+      <div className="flex gap-2">
+        {!fixedCode && (
+          <Input
+            value={setCode}
+            onChange={(e) => setSetCode(e.target.value)}
+            placeholder="Código"
+            aria-label="Código de la expansión"
+            maxLength={8}
+            autoCapitalize="characters"
+            autoComplete="off"
+            spellCheck={false}
+            className={cn(field, "w-24 uppercase")}
+          />
+        )}
+        <Input
+          value={number}
+          onChange={(e) => setNumber(e.target.value)}
+          placeholder="Número"
+          aria-label="Número de la carta"
+          maxLength={8}
+          autoComplete="off"
+          spellCheck={false}
+          // Opened by the scanner when the AI gives up: the point is to type, so the keyboard comes up.
+          autoFocus
+          className={cn(field, "min-w-0 flex-1")}
+        />
+      </div>
+      {error && <p className="text-xs text-red-300">{error}</p>}
+      <div className="flex gap-2">
+        <Button type="submit" size="sm" disabled={searching} aria-busy={searching || undefined}>
+          {searching ? "Buscando…" : "Buscar"}
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          className="text-white hover:bg-white/15 hover:text-white"
+          onClick={onClose}
+        >
+          Cerrar
+        </Button>
+      </div>
+    </form>
   );
 }
 

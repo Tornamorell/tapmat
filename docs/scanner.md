@@ -120,6 +120,7 @@ cámara trasera (getUserMedia, se piden 3840×2160; el móvil da lo que puede)
   - **A la derecha**, una columna de botones:
     - linterna, si el móvil la ofrece en `getCapabilities().torch`;
     - «Identificar con IA»;
+    - «Buscar por número» (#);
     - «Para luego», con las que hay por revisar;
     - ajustes: «Ajustar recuadro», «Buscar la carta», «IA automática», «Solo fotos» y «Ver lo
       que lee».
@@ -208,8 +209,8 @@ cámara trasera (getUserMedia, se piden 3840×2160; el móvil da lo que puede)
     sirve para **fotografiar** la carta, no para añadir copias. Nada entra en el inventario, y el
     contador de arriba pasa a decir «N fotos» en vez de cartas y euros. Es para recorrer un álbum
     que no tiene imágenes, como las 646 Megacracks 2026-27.
-    - Se intercepta en `add()`, que es por donde pasan los tres caminos (la votación, la tira de
-      candidatas y «Identificar con IA»), así que una sola rama los cubre todos.
+    - Se intercepta en `add()`, que es por donde pasan todos los caminos (la votación, la tira de
+      candidatas, «Identificar con IA» y «Buscar por número»), así que una sola rama los cubre.
     - Carta sin imagen: se fotografía y sigue. Carta con **imagen del catálogo** (Scryfall,
       TCGdex): se deja, porque `saveCardPhoto` no la sustituye nunca (D30) y preguntar sería
       ofrecer algo que no puede pasar. Carta con **foto compartida**: pregunta antes de
@@ -219,12 +220,21 @@ cámara trasera (getUserMedia, se piden 3840×2160; el móvil da lo que puede)
       de enseñarla, para no meter un toque de confirmación por carta en un barrido de cientos;
       repetir sustituye, que ya estaba resuelto. Dura mientras la carta siga delante: «Repetir»
       fotografía lo que haya en ese momento.
+    - **Si la IA tampoco la encuentra** (no ve una carta, lo que lee no está en el catálogo o
+      falla la llamada), se abre sola «Buscar por número» (2026-09-30): el número de la ficha
+      va impreso en el álbum aunque nadie pueda leer la carta.
     - **No se reconoce por la huella de la foto** (D33) mientras el modo está encendido: solo
       acierta en cartas que ya tienen foto compartida, y aquí se fotografían justo las que no.
       Eran una de cada tres lecturas gastadas en una comparación que casi nunca acierta.
     - Medido con una base de 2025-26: «LAMINE YAMAL», con un 78 % de confianza. Falta
       probarlo con cartas reales de las series especiales, que pueden llevar el nombre en otro
       sitio.
+  - **«Buscar por número»** (#, en la columna de la derecha; 2026-09-30): un formulario arriba
+    —no abajo, que lo taparía el teclado— para escribir el número de la carta, y el código de la
+    expansión si no hay una fija. Pasa por la misma consulta que la lectura del número
+    (`/api/scan/lookup`) y por el mismo camino que la IA (`addPicked`): una carta se añade, o se
+    fotografía en «Solo fotos», y varias van a la tira de candidatas. Mientras está abierto, la
+    lectura se pausa; la carta se queda en el recuadro, porque en «Solo fotos» esa es la foto.
   - **Foto compartida:** al añadir una carta sin imagen de catálogo (fútbol, algunas de
     Pokémon), el escáner guarda en segundo plano la foto del recuadro (300×419) como imagen de
     esa carta para todos, si aún no tiene ninguna (D30).
