@@ -9,7 +9,10 @@ export interface CardSearchResult {
   name: string;
   /** Spanish name, when the match came from it (or the card has one). */
   printedName: string | null;
-  /** Most recent paper printing — used for the thumbnail and as the default link target. */
+  /**
+   * The most recent printing with an image — used for the thumbnail and as the default link
+   * target. The newest outright when none has one (football albums).
+   */
   printingId: string;
   imageSmall: string | null;
   printings: number;
@@ -60,7 +63,9 @@ export async function searchCards(query: string, limit = 12): Promise<CardSearch
        select c.id, c.game, c.name, c.image_small, count(*) over () as printings
        from catalog_cards c
        where c.oracle_id = r.oracle_id
-       order by c.released_at desc nulls last
+       -- An image first: the newest printing is often one the source hasn't pictured yet (a
+       -- Trainer Gallery «Pikachu V»), and a result without a picture looked broken.
+       order by c.image_small is null, c.released_at desc nulls last
        limit 1
      ) latest
      order by r.prefix desc, r.sim desc, latest.name`,
