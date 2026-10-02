@@ -387,7 +387,7 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
   Con los álbumes de fútbol servirá igual.
 
 - **Actualización (2026-10-02) · pasar página:** el usuario pidió que las páginas se pasaran
-  «como en un álbum real». La hoja gira en 3D sobre las anillas, y además de los botones se pasa
+  «como en un álbum real». La hoja gira en 3D sobre el lomo, y además de los botones se pasa
   con la esquina de la página, las flechas y deslizando el dedo.
   - **Con el dedo, mover una carta pide mantenerla pulsada** (`TouchSensor` con 250 ms) en vez
     de empezar a los 8 px: si no, deslizar de lado para pasar página arrastraría la carta que

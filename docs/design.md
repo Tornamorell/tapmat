@@ -94,8 +94,8 @@ siendo los de shadcn por si algún día se añade un selector de tema.
     acciones. Ahí el bolsillo solo se mira, y añadir copias vive en el overlay que se abre al
     tocarla, con los dos + sobre la carta grande.
   - **El álbum es un binder** (`.binder-*` en `globals.css`, 2026-10-02): tapa más oscura que el
-    tapete, anillas, sombra hacia el lomo y bolsillos como fundas. Al pasar página la hoja gira en
-    3D sobre las anillas (`.binder-leaf`, 700 ms) y se oscurece desde el lomo mientras está de
+    tapete, sombra hacia el lomo y bolsillos como fundas. Al pasar página la hoja gira en
+    3D sobre el lomo (`.binder-leaf`, 700 ms) y se oscurece desde el lomo mientras está de
     pie. Es la única animación del álbum y solo la dispara el usuario; con
     `prefers-reduced-motion`, no hay giro. Todos los bolsillos reservan el hueco de las fichas de
     acabado si alguno las lleva, para que todas las páginas midan lo mismo y la hoja que gira

@@ -61,8 +61,8 @@ type Turn = { dir: 1 | -1; to: number };
 
 /**
  * The collection laid out as the physical album: pockets in rows of three, two facing pages
- * either side of the rings on a wide screen and one on a phone. Pages turn like the real thing —
- * the sheet swings over the rings — with the buttons, the page corners, a swipe or the arrow
+ * either side of the spine on a wide screen and one on a phone. Pages turn like the real thing —
+ * the sheet swings over the spine — with the buttons, the page corners, a swipe or the arrow
  * keys. Cards keep the same tile as the grid, so one you don't have is greyed.
  */
 function BinderPages({ cards, collectionId }: { cards: CollectionCard[]; collectionId: string }) {
@@ -326,8 +326,6 @@ function BinderPages({ cards, collectionId }: { cards: CollectionCard[]; collect
                   )}
                 </div>
               )}
-
-              <BinderRings at={step === 2 ? "spine" : "edge"} />
             </div>
           </div>
         </SortableContext>
@@ -338,25 +336,8 @@ function BinderPages({ cards, collectionId }: { cards: CollectionCard[]; collect
   );
 }
 
-/** Where a page sits: left or right of the rings on a spread, or alone on a phone. */
+/** Where a page sits: left or right of the spine on a spread, or alone on a phone. */
 type Side = "left" | "right" | "single";
-
-/** The binder's rings, over the spine of a spread or down the edge of a single page. */
-function BinderRings({ at }: { at: "spine" | "edge" }) {
-  return (
-    <div
-      aria-hidden
-      className={cn(
-        "pointer-events-none absolute inset-y-0 z-10 flex flex-col justify-around py-[12%]",
-        at === "spine" ? "left-1/2 -translate-x-1/2" : "left-0 -translate-x-1/2",
-      )}
-    >
-      {[0, 1, 2].map((i) => (
-        <span key={i} className="binder-ring" />
-      ))}
-    </div>
-  );
-}
 
 /** Whether this card comes in the standard finish and in the game's second one (reverse holo). */
 function bothFinishes(card: CollectionCard) {
