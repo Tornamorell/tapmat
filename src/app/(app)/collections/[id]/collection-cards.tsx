@@ -3,7 +3,8 @@
 import {
   DndContext,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   closestCenter,
   useSensor,
   useSensors,
@@ -19,7 +20,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { MoveIcon, Trash2Icon, XIcon } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { CardThumb } from "@/components/card-thumb";
 import { CollectionPicker, type CollectionOption } from "@/components/collection-picker";
@@ -39,6 +40,7 @@ import {
 import { formatEur, formatInt } from "@/lib/format";
 import { finishLabel, gameById, rarityLabel } from "@/lib/games";
 import type { CollectionCard } from "@/lib/queries/collections";
+import { useMediaQuery } from "@/lib/use-media-query";
 import { cn } from "@/lib/utils";
 import { moveCollectionCards, removeCardsFromCollection, reorderCollectionCards } from "../actions";
 import { EntryControls } from "./entry-controls";
@@ -51,10 +53,17 @@ export type CollectionView = "grid" | "list" | "binder";
 const POCKETS = [9, 12] as const;
 type Pockets = (typeof POCKETS)[number];
 
+/** How far a finger has to travel sideways for a swipe to turn the page. */
+const SWIPE_PX = 48;
+
+/** A page turning: towards the end (1) or the start (-1), and the first page it leaves open. */
+type Turn = { dir: 1 | -1; to: number };
+
 /**
- * The collection laid out as the physical album: pockets in rows of three, two facing pages at a
- * time on a wide screen and one on a phone. Cards keep the same tile as the grid, so one you
- * don't have is greyed and the + still adds a copy.
+ * The collection laid out as the physical album: pockets in rows of three, two facing pages
+ * either side of the rings on a wide screen and one on a phone. Pages turn like the real thing —
+ * the sheet swings over the rings — with the buttons, the page corners, a swipe or the arrow
+ * keys. Cards keep the same tile as the grid, so one you don't have is greyed.
  */
 function BinderPages({ cards, collectionId }: { cards: CollectionCard[]; collectionId: string }) {
   // Which card sits in which pocket belongs to the album, not to the sort nav: the order you
@@ -81,12 +90,19 @@ function BinderPages({ cards, collectionId }: { cards: CollectionCard[]; collect
   }, [manual, serverOrder]);
   const [, startReorder] = useTransition();
   const sensors = useSensors(
-    // A tap has to keep opening the card: the drag only starts once the pointer has travelled.
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    // A click has to keep opening the card: with a mouse the drag starts once it has travelled.
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    // A finger moving sideways is turning the page, so a pocket is picked up by holding it.
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
+  // A drag in progress (the arrows move the card, not the page), and whether this touch became
+  // one (then lifting the finger isn't a swipe).
+  const dragging = useRef(false);
+  const dragged = useRef(false);
 
   function onDragEnd({ active, over }: DragEndEvent) {
+    dragging.current = false;
     if (!over || active.id === over.id) return;
     const ids = ordered.map((c) => c.id);
     const from = ids.indexOf(String(active.id));
@@ -104,35 +120,92 @@ function BinderPages({ cards, collectionId }: { cards: CollectionCard[]; collect
     });
   }
 
+  const wide = useMediaQuery("(min-width: 64rem)");
+  const step = wide ? 2 : 1;
   const [perPage, setPerPage] = useState<Pockets>(9);
-  const [spread, setSpread] = useState(0);
+  // The first page open. On a wide screen it's the left one, so always even.
+  const [page, setPage] = useState(0);
+  const [turn, setTurn] = useState<Turn | null>(null);
   // The pocket you tapped, shown big. One at a time, so the tilt costs nothing here.
   const [open, setOpen] = useState<CollectionCard | null>(null);
   const pageCount = Math.max(1, Math.ceil(ordered.length / perPage));
-  const spreadCount = Math.ceil(pageCount / 2);
-  // Changing the page size can leave the spread past the end.
-  const at = Math.min(spread, spreadCount - 1);
-  const pages = [at * 2, at * 2 + 1].filter((p) => p < pageCount);
+  const last = pageCount - 1 - ((pageCount - 1) % step);
+  // Changing the page size or the screen can leave the page past the end, or odd on a spread.
+  const first = Math.min(page - (page % step), last);
+  // A page past the end is the back of the last sheet: empty pockets, no number.
+  const sheet = (p: number) => ({
+    number: p < pageCount ? p + 1 : null,
+    cards: ordered.slice(p * perPage, (p + 1) * perPage),
+  });
+
+  function turnPage(dir: 1 | -1) {
+    if (turn) return;
+    const to = first + dir * step;
+    if (to < 0 || to > last) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) setPage(to);
+    else setTurn({ dir, to });
+  }
+
+  // The arrow keys turn the page, unless they're moving a card or typing somewhere.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.defaultPrevented || dragging.current || open) return;
+      if (e.target instanceof Element && e.target.closest("input, select, textarea, [role=dialog]"))
+        return;
+      if (e.key === "ArrowRight") turnPage(1);
+      else if (e.key === "ArrowLeft") turnPage(-1);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
+  // Where a finger came down, to tell a swipe on lifting it; and a swipe that turned the page
+  // mustn't also open the pocket it started on.
+  const touch = useRef<{ id: number; x: number; y: number } | null>(null);
+  const swiped = useRef(false);
+
+  const label =
+    step === 2 && first + 1 < pageCount
+      ? `Páginas ${first + 1}–${first + 2}`
+      : `Página ${first + 1}`;
+  // Every pocket keeps room for the finish chips if any has them, so all pages are the same
+  // height and the turning sheet lines up with the one under it.
+  const chips = ordered.some((c) => bothFinishes(c));
+  const pageProps = { perPage, chips, onOpen: setOpen };
+
+  // Under the turning sheet, the pages it uncovers; on it, the ones it carries over.
+  let base: { p: number; side: Side }[];
+  let leaf: { front: number; back: number | null; hinge: "left" | "right" } | null = null;
+  if (step === 2) {
+    const left = turn?.dir === -1 ? turn.to : first;
+    const right = turn?.dir === 1 ? turn.to + 1 : first + 1;
+    base = [
+      { p: left, side: "left" },
+      { p: right, side: "right" },
+    ];
+    if (turn)
+      leaf =
+        turn.dir === 1
+          ? { front: first + 1, back: turn.to, hinge: "left" }
+          : { front: first, back: turn.to + 1, hinge: "right" };
+  } else {
+    // One page: going on, the open page swings away to the left and uncovers the next; going
+    // back, the previous one swings in over it.
+    base = [{ p: turn?.dir === 1 ? turn.to : first, side: "single" }];
+    if (turn) leaf = { front: turn.dir === 1 ? first : turn.to, back: null, hinge: "left" };
+  }
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" disabled={at === 0} onClick={() => setSpread(at - 1)}>
+          <Button variant="outline" size="sm" disabled={first === 0} onClick={() => turnPage(-1)}>
             ← Anterior
           </Button>
-          <span className="tabular-nums">
-            {pages.length > 1
-              ? `Páginas ${pages[0] + 1}–${pages[1] + 1}`
-              : `Página ${pages[0] + 1}`}{" "}
-            de {pageCount}
+          <span className="tabular-nums" aria-live="polite">
+            {label} de {pageCount}
           </span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={at >= spreadCount - 1}
-            onClick={() => setSpread(at + 1)}
-          >
+          <Button variant="outline" size="sm" disabled={first >= last} onClick={() => turnPage(1)}>
             Siguiente →
           </Button>
         </div>
@@ -143,7 +216,7 @@ function BinderPages({ cards, collectionId }: { cards: CollectionCard[]; collect
             value={perPage}
             onChange={(e) => {
               setPerPage(Number(e.target.value) as Pockets);
-              setSpread(0);
+              setPage(0);
             }}
           >
             {POCKETS.map((n) => (
@@ -155,25 +228,132 @@ function BinderPages({ cards, collectionId }: { cards: CollectionCard[]; collect
         </label>
       </div>
 
-      {/* The whole album is one sortable list, but only the open spread is on screen, so a card
-          can be dragged within the two facing pages and not across to another one. */}
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+      {/* The whole album is one sortable list, but only the open pages are on screen, so a card
+          can be dragged within them and not across to another sheet. While a sheet turns the
+          pockets stay still: the pages are drawn twice then, and a drag would land nowhere. */}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={() => {
+          dragging.current = true;
+          dragged.current = true;
+        }}
+        onDragCancel={() => (dragging.current = false)}
+        onDragEnd={onDragEnd}
+      >
         <SortableContext items={ordered.map((c) => c.id)} strategy={rectSortingStrategy}>
-          <div className="grid gap-4 lg:grid-cols-2">
-            {pages.map((p) => (
-              <BinderPage
-                key={p}
-                number={p + 1}
-                perPage={perPage}
-                cards={ordered.slice(p * perPage, (p + 1) * perPage)}
-                onOpen={setOpen}
-              />
-            ))}
+          <div
+            className="binder-cover rounded-2xl p-2 sm:p-3"
+            onPointerDown={(e) => {
+              if (e.pointerType !== "touch") return;
+              dragged.current = false;
+              touch.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
+            }}
+            onPointerUp={(e) => {
+              const t = touch.current;
+              touch.current = null;
+              if (!t || t.id !== e.pointerId || dragged.current) return;
+              const dx = e.clientX - t.x;
+              const dy = e.clientY - t.y;
+              if (Math.abs(dx) < SWIPE_PX || Math.abs(dx) < 1.5 * Math.abs(dy)) return;
+              swiped.current = true;
+              setTimeout(() => (swiped.current = false), 400);
+              turnPage(dx < 0 ? 1 : -1);
+            }}
+            onPointerCancel={() => (touch.current = null)}
+            onClickCapture={(e) => {
+              if (!swiped.current) return;
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+          >
+            <div className={cn("binder-book relative grid", step === 2 && "grid-cols-2")}>
+              {base.map(({ p, side }) => (
+                <BinderPage
+                  key={side}
+                  {...sheet(p)}
+                  {...pageProps}
+                  side={side}
+                  sortable={!turn}
+                  onTurn={
+                    turn
+                      ? undefined
+                      : side === "left"
+                        ? first > 0
+                          ? () => turnPage(-1)
+                          : undefined
+                        : first < last
+                          ? () => turnPage(1)
+                          : undefined
+                  }
+                />
+              ))}
+
+              {leaf && turn && (
+                <div
+                  className={cn(
+                    "binder-leaf",
+                    step === 1 ? "inset-x-0" : turn.dir === 1 ? "left-1/2 w-1/2" : "left-0 w-1/2",
+                  )}
+                  data-hinge={leaf.hinge}
+                  data-turn={step === 1 && turn.dir === -1 ? "in" : "over"}
+                  onAnimationEnd={(e) => {
+                    if (e.target !== e.currentTarget) return;
+                    setPage(turn.to);
+                    setTurn(null);
+                  }}
+                >
+                  <div className="binder-face" data-hinge={leaf.hinge}>
+                    <BinderPage
+                      {...sheet(leaf.front)}
+                      {...pageProps}
+                      side={step === 1 ? "single" : leaf.hinge === "left" ? "right" : "left"}
+                      sortable={false}
+                    />
+                  </div>
+                  {leaf.back !== null && (
+                    <div
+                      className="binder-face binder-face-back"
+                      data-hinge={leaf.hinge === "left" ? "right" : "left"}
+                    >
+                      <BinderPage
+                        {...sheet(leaf.back)}
+                        {...pageProps}
+                        side={leaf.hinge === "left" ? "left" : "right"}
+                        sortable={false}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <BinderRings at={step === 2 ? "spine" : "edge"} />
+            </div>
           </div>
         </SortableContext>
       </DndContext>
 
       {open && <CardOverlay card={open} onClose={() => setOpen(null)} />}
+    </div>
+  );
+}
+
+/** Where a page sits: left or right of the rings on a spread, or alone on a phone. */
+type Side = "left" | "right" | "single";
+
+/** The binder's rings, over the spine of a spread or down the edge of a single page. */
+function BinderRings({ at }: { at: "spine" | "edge" }) {
+  return (
+    <div
+      aria-hidden
+      className={cn(
+        "pointer-events-none absolute inset-y-0 z-10 flex flex-col justify-around py-[12%]",
+        at === "spine" ? "left-1/2 -translate-x-1/2" : "left-0 -translate-x-1/2",
+      )}
+    >
+      {[0, 1, 2].map((i) => (
+        <span key={i} className="binder-ring" />
+      ))}
     </div>
   );
 }
@@ -188,57 +368,102 @@ function BinderPage({
   number,
   cards,
   perPage,
+  chips,
+  side,
+  sortable,
   onOpen,
+  onTurn,
 }: {
-  number: number;
+  /** Null for the back of the last sheet. */
+  number: number | null;
   cards: CollectionCard[];
   perPage: number;
+  chips: boolean;
+  side: Side;
+  /** False while the page is turning, or drawn on the sheet that turns. */
+  sortable: boolean;
   onOpen: (card: CollectionCard) => void;
+  /** Its outer corner turns the page, when there's a page to turn to. */
+  onTurn?: () => void;
 }) {
   // The last page is rarely full: draw the empty pockets so it still reads as a page.
   const empty = Math.max(0, perPage - cards.length);
+  const Pocket = sortable ? SortablePocket : StillPocket;
   return (
-    <section className="bg-card space-y-2 rounded-xl border p-3" aria-label={`Página ${number}`}>
-      <p className="text-muted-foreground text-xs">Página {number}</p>
+    <section
+      className="binder-page relative flex h-full flex-col gap-2 p-3"
+      data-side={side}
+      aria-label={number ? `Página ${number}` : undefined}
+    >
       <ul className="grid grid-cols-3 gap-2">
         {cards.map((c) => (
-          <SortablePocket key={c.id} card={c} onOpen={onOpen} />
+          <Pocket key={c.id} card={c} chips={chips} onOpen={onOpen} />
         ))}
         {Array.from({ length: empty }, (_, i) => (
-          <li
-            key={`empty-${i}`}
-            className="border-muted-foreground/20 aspect-[63/88] rounded-lg border border-dashed"
-          />
+          <li key={`empty-${i}`} className="binder-pocket">
+            <div className="aspect-[63/88]" />
+          </li>
         ))}
       </ul>
+      <p className="text-muted-foreground mt-auto text-center text-[11px] tabular-nums">
+        {number ?? " "}
+      </p>
+      {onTurn && (
+        <button
+          type="button"
+          className="binder-corner"
+          data-side={side === "left" ? "left" : "right"}
+          onClick={onTurn}
+          aria-label={side === "left" ? "Página anterior" : "Página siguiente"}
+        />
+      )}
     </section>
   );
 }
 
 /**
  * One pocket, draggable to another. The listeners sit on the whole pocket rather than on a
- * handle: the sensor only starts a drag after the pointer has moved, so tapping still opens the
- * card, and `attributes` brings the keyboard reordering with it.
+ * handle: a mouse drag only starts after the pointer has moved and a finger has to hold the
+ * pocket first, so tapping still opens the card, and `attributes` brings the keyboard
+ * reordering with it.
  */
-function SortablePocket({
-  card,
-  onOpen,
-}: {
-  card: CollectionCard;
-  onOpen: (card: CollectionCard) => void;
-}) {
+function SortablePocket({ card, chips, onOpen }: PocketProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: card.id,
   });
-  const second = bothFinishes(card);
   return (
     <li
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={cn("space-y-1", isDragging && "z-10 opacity-60")}
+      className={cn("binder-pocket space-y-1", isDragging && "z-20 opacity-60")}
       {...attributes}
       {...listeners}
     >
+      <PocketContents card={card} chips={chips} onOpen={onOpen} />
+    </li>
+  );
+}
+
+/** A pocket on a page that's turning: the same card, not draggable. */
+function StillPocket({ card, chips, onOpen }: PocketProps) {
+  return (
+    <li className="binder-pocket space-y-1">
+      <PocketContents card={card} chips={chips} onOpen={onOpen} />
+    </li>
+  );
+}
+
+type PocketProps = {
+  card: CollectionCard;
+  /** Keep room for the finish chips even without them, so every pocket is as tall. */
+  chips: boolean;
+  onOpen: (card: CollectionCard) => void;
+};
+
+function PocketContents({ card, chips, onOpen }: PocketProps) {
+  const second = bothFinishes(card);
+  return (
+    <>
       {/* No + here: a pocket is for looking, and two of them fought with the card. Adding a
           copy lives in the overlay you get by tapping it. */}
       <OwnedCardTile
@@ -257,13 +482,19 @@ function SortablePocket({
       <p className="text-muted-foreground truncate text-[11px]" title={card.name}>
         #{card.collectorNumber} {card.name}
       </p>
-      {second && (
+      {second ? (
         <p className="flex flex-wrap gap-1">
           <FinishChip label={finishLabel(card.game, "nonfoil")} n={card.ownedNonfoil} />
           <FinishChip label={finishLabel(card.game, second)} n={card.ownedFoil} foil />
         </p>
+      ) : (
+        chips && (
+          <p className="invisible" aria-hidden>
+            <FinishChip label="—" n={0} />
+          </p>
+        )
       )}
-    </li>
+    </>
   );
 }
 

@@ -105,10 +105,17 @@ compartidas, 7 días de precios guardados y 12 días de valor del inventario.
     aquí no cuesta nada.
   - **Se reordenan arrastrando**, con `@dnd-kit` (la primera dependencia nueva en mucho tiempo,
     elegida por el usuario porque las alternativas baratas no funcionan con el dedo). El orden se
-    guarda en `collection_cards.position` (migración `0026`) y solo afecta al álbum. Arrastrar
-    empieza a los 8 px, para que tocar siga abriendo la carta, y de paso se puede reordenar con
-    el teclado. **Solo dentro de las dos páginas abiertas:** el resto de bolsillos no está
-    montado, así que no se puede arrastrar de una página a otra.
+    guarda en `collection_cards.position` (migración `0026`) y solo afecta al álbum. Con el
+    ratón, arrastrar empieza a los 8 px, para que hacer clic siga abriendo la carta; con el dedo,
+    **manteniendo pulsado** el bolsillo un cuarto de segundo, porque deslizar de lado pasa la
+    página. De paso se puede reordenar con el teclado. **Solo dentro de las páginas abiertas:**
+    el resto de bolsillos no está montado, así que no se puede arrastrar de una página a otra.
+  - **Las páginas se pasan como en un binder** (2026-10-02): la hoja gira en 3D sobre las anillas
+    —su cara de delante es la página que dejas y la de detrás la que llega— y se oscurece al
+    levantarse. Se pasa con «Anterior»/«Siguiente», con la esquina doblada de cada página, con
+    las flechas del teclado o deslizando el dedo. Tapa oscura, anillas en el lomo (en el borde en
+    el móvil), sombra hacia el lomo y bolsillos como fundas. Con `prefers-reduced-motion` la
+    página cambia sin animación.
 - **Escáner** (todo en `docs/scanner.md`): la franja se lee como texto disperso, la clave de
   votación ya no confunde cartas distintas, la franja de una carta encontrada va **debajo** de su
   marco, se aceptan códigos de expansión con una letra mal, se encuentran las reimpresiones de

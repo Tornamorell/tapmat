@@ -93,6 +93,13 @@ siendo los de shadcn por si algún día se añade un selector de tema.
     bolsillo los dos botones tapaban la carta y se leían como si fueran el estado de la carta, no
     acciones. Ahí el bolsillo solo se mira, y añadir copias vive en el overlay que se abre al
     tocarla, con los dos + sobre la carta grande.
+  - **El álbum es un binder** (`.binder-*` en `globals.css`, 2026-10-02): tapa más oscura que el
+    tapete, anillas, sombra hacia el lomo y bolsillos como fundas. Al pasar página la hoja gira en
+    3D sobre las anillas (`.binder-leaf`, 700 ms) y se oscurece desde el lomo mientras está de
+    pie. Es la única animación del álbum y solo la dispara el usuario; con
+    `prefers-reduced-motion`, no hay giro. Todos los bolsillos reservan el hueco de las fichas de
+    acabado si alguno las lleva, para que todas las páginas midan lo mismo y la hoja que gira
+    coincida con la de debajo.
   - Los dos acabados de un bolsillo se dicen con dos fichas debajo, la reverse holo con la
     película foil (`.foil-button`) y atenuada cuando no tienes ninguna. Antes era una carta
     desplazada por detrás, que con `-z-10` quedaba tapada por el fondo del panel y no se veía.

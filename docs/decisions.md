@@ -386,6 +386,18 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
 
   Con los álbumes de fútbol servirá igual.
 
+- **Actualización (2026-10-02) · pasar página:** el usuario pidió que las páginas se pasaran
+  «como en un álbum real». La hoja gira en 3D sobre las anillas, y además de los botones se pasa
+  con la esquina de la página, las flechas y deslizando el dedo.
+  - **Con el dedo, mover una carta pide mantenerla pulsada** (`TouchSensor` con 250 ms) en vez
+    de empezar a los 8 px: si no, deslizar de lado para pasar página arrastraría la carta que
+    estuviera debajo. Con el ratón sigue igual (`MouseSensor`, 8 px).
+  - Mientras gira, los bolsillos no se pueden arrastrar: las páginas se pintan dos veces (debajo y
+    en la hoja) y `useSortable` no admite el mismo id dos veces.
+  - Descartado: que la hoja siga al dedo mientras deslizas. Sería más fiel, pero obliga a
+    calcular el ángulo con cada movimiento y a decidir a medio gesto si se completa; el giro
+    disparado al soltar ya se lee como un binder. Revisar si se echa de menos.
+
 ## D24 · Evolución del valor: la gráfica incluye tus altas; "cambio por precios", no — 2026-09-11 · provisional
 
 - **Contexto:** el valor diario (`inventory_value_snapshots`) sube tanto si suben los precios
