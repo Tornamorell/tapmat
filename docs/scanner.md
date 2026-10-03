@@ -239,9 +239,10 @@ cámara trasera (getUserMedia, se piden 3840×2160; el móvil da lo que puede)
   - **Foto compartida:** al añadir una carta sin imagen de catálogo (fútbol, algunas de
     Pokémon), el escáner guarda en segundo plano la foto del recuadro (300×419) como imagen de
     esa carta para todos, si aún no tiene ninguna (D30).
-    - La carta se busca alrededor del recuadro, se endereza y se recorta a sus bordes, con los
-      niveles ajustados (D32). Lo mismo con la foto de «Para luego» y la de «Identificar con
-      IA». Si no encuentra los bordes, usa el recorte del recuadro.
+    - La carta se busca alrededor del recuadro, se endereza y se recorta a sus bordes —no a los
+      de una funda transparente—, con los niveles ajustados (D32). Lo mismo con la foto de «Para
+      luego» y la de «Identificar con IA». Si no encuentra los bordes, usa el recorte del
+      recuadro.
   - **Reconocer por la foto** (D33):
     - Al empezar se descargan las huellas perceptuales de las fotos compartidas del álbum fijado,
       o de todas.

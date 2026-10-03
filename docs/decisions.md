@@ -744,11 +744,24 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
     a 0,034 de la forma de una carta, y esas sí hay que buscarlas y enderezarlas.
   - Solo cambia «Añadir foto» de la ficha (`cardInPictureBlob`). El escáner sigue igual: busca
     alrededor del recuadro, donde de verdad hay mesa alrededor de la carta.
+- **Actualización (2026-10-03, cartas con funda transparente):** el usuario vio que a veces
+  recortaba por el borde de la funda y no por el de la carta. El canto de la funda es un brillo
+  fino y recto, más exterior que la carta, así que `fitSide` lo elegía por ser la recta más de
+  fuera.
+  - Ahora `edgeCandidates` descarta un candidato si a 2–6 px por fuera **y** a 2–6 px por dentro
+    (cada lado a su distancia) se ve el color del tapete —el del extremo exterior de la línea de
+    barrido—, con una tolerancia del 25 % del contraste del propio candidato. Es el brillo con el
+    tapete a un lado y el tapete visto a través del plástico al otro. El borde de la carta tiene
+    la carta por dentro y se queda.
+  - Probado solo con fotos sintéticas (funda centrada, sobre tapete oscuro, y carta caída al fondo
+    de la funda): 0–1,5 px de error, estable con tolerancias de 15 % a 35 %.
+  - No resuelve fundas con el dorso de color (por dentro del canto se ve el color del dorso, no
+    el tapete) ni el doble enfundado opaco: ahí seguiría cogiendo la funda.
 - **Descartado:**
   - Pedir las esquinas a la IA: imprecisa (arriba).
   - Modelos que generan imágenes: inventarían detalles de la carta.
   - OpenCV.js: ~8 MB de descarga para lo mismo.
-- **Revisar cuando:** falle con fotos reales del escáner, o se quiera usar también para el OCR
+- **Revisar cuando:** falle con fotos reales del escáner (sobre todo con fundas), o se quiera usar también para el OCR
   (la carta enderezada pone las franjas exactamente donde tocan, pero habría que hacerlo en
   cada fotograma).
 

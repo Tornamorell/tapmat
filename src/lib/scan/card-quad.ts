@@ -18,6 +18,8 @@ const LINES = 48; // scan lines per side
 const MIN_EDGE = 90; // weakest gradient (sum of the three Sobel channels) considered at all
 const MIN_SUPPORT = 12; // scan lines that must agree on a side
 const PEAKS_PER_LINE = 5;
+const STEP_GAPS = [2, 3, 4, 5, 6]; // px from a candidate, each side, where the mat may show
+const MATCH = 0.25; // colours this close to the mat, per unit of the candidate's contrast, are the mat's
 
 /** A 3×3 box blur of the RGB channels: cloth or wood texture shouldn't look like an edge. */
 export function blurRgb(rgba: ArrayLike<number>, w: number, h: number): Float32Array {
@@ -76,9 +78,13 @@ type Candidate = Pt & { line: number; /** Distance from the image edge. */ depth
  * Along scan lines across one side of the image, the strongest local maxima of the gradient.
  * The card's border is one of them, though not always the strongest (green grass printed next
  * to a green mat) nor the first from outside (a mat's texture). Corners are skipped: rounded.
+ *
+ * Not a clear sleeve's edge: a thin glint with the mat on both sides, seen through the plastic
+ * inside. It's straight and further out than the card, so `fitSide` would take it for its side.
  */
 function edgeCandidates(
   side: Side,
+  rgb: Float32Array,
   g: { gx: Float32Array; gy: Float32Array },
   w: number,
   h: number,
@@ -90,6 +96,25 @@ function edgeCandidates(
   const len = Math.round(band * size);
   const fromStart = side === "left" || side === "top";
   const values = new Float32Array(len);
+  const at = (fixed: number, k: number) => {
+    const kk = Math.min(size - 1, Math.max(0, k));
+    const pos = fromStart ? kk : size - 1 - kk;
+    return (horizontal ? fixed * w + pos : pos * w + fixed) * 3;
+  };
+  const diff = (o: number, i: number) =>
+    Math.abs(rgb[o] - rgb[i]) + Math.abs(rgb[o + 1] - rgb[i + 1]) + Math.abs(rgb[o + 2] - rgb[i + 2]);
+  // Seen through on both sides: a few px outside the candidate and a few inside, the mat's colour
+  // (the line's outer end), compared with how far from it the candidate strays. Each side at its
+  // own distance: the glint is a pixel or two, the plastic beyond it may be as narrow.
+  const seeThrough = (fixed: number, k: number) => {
+    const mat = at(fixed, 1);
+    let contrast = 0;
+    for (let d = 0; d <= STEP_GAPS.at(-1)!; d++) {
+      contrast = Math.max(contrast, diff(at(fixed, k - d), mat), diff(at(fixed, k + d), mat));
+    }
+    const isMat = (d: number) => diff(at(fixed, k + d), mat) < MATCH * contrast;
+    return STEP_GAPS.some((d) => isMat(-d)) && STEP_GAPS.some(isMat);
+  };
   for (let i = 0; i < LINES; i++) {
     const fixed = Math.round((0.12 + (0.76 * i) / (LINES - 1)) * (horizontal ? h : w));
     let max = 0;
@@ -104,7 +129,8 @@ function edgeCandidates(
       if (v >= MIN_EDGE && v >= 0.15 * max && v >= values[k - 1] && v > values[k + 1]) peaks.push({ k, v });
     }
     peaks.sort((a, b) => b.v - a.v);
-    for (const { k } of peaks.slice(0, PEAKS_PER_LINE)) {
+    const solid = peaks.filter(({ k }) => !seeThrough(fixed, k));
+    for (const { k } of solid.slice(0, PEAKS_PER_LINE)) {
       const pos = fromStart ? k : size - 1 - k;
       out.push({ ...(horizontal ? { x: pos, y: fixed } : { x: fixed, y: pos }), line: i, depth: k });
     }
@@ -209,12 +235,13 @@ function complete(s: Record<Side, Line | null>, missing: Side): Quad | null {
  * side. Null when they aren't clear enough to trust: better the plain crop than a wrong one.
  */
 export function detectCardQuad(rgba: ArrayLike<number>, w: number, h: number, band = 0.3): Quad | null {
-  const g = gradients(blurRgb(rgba, w, h), w, h);
+  const rgb = blurRgb(rgba, w, h);
+  const g = gradients(rgb, w, h);
   const sides: Record<Side, Line | null> = {
-    left: fitSide(edgeCandidates("left", g, w, h, band), true),
-    right: fitSide(edgeCandidates("right", g, w, h, band), true),
-    top: fitSide(edgeCandidates("top", g, w, h, band), false),
-    bottom: fitSide(edgeCandidates("bottom", g, w, h, band), false),
+    left: fitSide(edgeCandidates("left", rgb, g, w, h, band), true),
+    right: fitSide(edgeCandidates("right", rgb, g, w, h, band), true),
+    top: fitSide(edgeCandidates("top", rgb, g, w, h, band), false),
+    bottom: fitSide(edgeCandidates("bottom", rgb, g, w, h, band), false),
   };
   const missing = (Object.keys(sides) as Side[]).filter((s) => !sides[s]);
   if (missing.length > 1) return null;

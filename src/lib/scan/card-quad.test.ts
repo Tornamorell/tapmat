@@ -18,17 +18,22 @@ function cardAt(width: number, deg: number): Pt[] {
   ].map(([x, y]) => ({ x: W / 2 + x * Math.cos(t) - y * Math.sin(t), y: H / 2 + x * Math.sin(t) + y * Math.cos(t) }));
 }
 
+const UNIT = [
+  { x: 0, y: 0 },
+  { x: 1, y: 0 },
+  { x: 1, y: 1 },
+  { x: 0, y: 1 },
+];
+
 /**
  * A photo: a noisy cloth, and the card at `corners` painted by `design(u, v)` (0–1 across and
- * down the card).
+ * down the card). With `sleeve`, the card is in a clear sleeve with those corners: a thin glint
+ * along its edge, the cloth a shade lighter through the plastic.
  */
-function photo(corners: Pt[], cloth: Rgb, design: (u: number, v: number) => Rgb): Uint8ClampedArray {
-  const toCard = homography(corners, [
-    { x: 0, y: 0 },
-    { x: 1, y: 0 },
-    { x: 1, y: 1 },
-    { x: 0, y: 1 },
-  ]);
+function photo(corners: Pt[], cloth: Rgb, design: (u: number, v: number) => Rgb, sleeve?: Pt[]): Uint8ClampedArray {
+  const toCard = homography(corners, UNIT);
+  const toSleeve = sleeve && homography(sleeve, UNIT);
+  const sleeveW = sleeve ? Math.hypot(sleeve[1].x - sleeve[0].x, sleeve[1].y - sleeve[0].y) : 1;
   let seed = 7;
   const noise = () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648 - 0.5) * 30;
   const img = new Uint8ClampedArray(W * H * 4);
@@ -37,7 +42,14 @@ function photo(corners: Pt[], cloth: Rgb, design: (u: number, v: number) => Rgb)
       const { x: u, y: v } = applyHomography(toCard, { x: x + 0.5, y: y + 0.5 });
       const inside = u >= 0 && u <= 1 && v >= 0 && v <= 1;
       const n = noise();
-      const rgb = inside ? design(u, v) : (cloth.map((c) => c + n) as Rgb);
+      let rgb = inside ? design(u, v) : (cloth.map((c) => c + n) as Rgb);
+      if (toSleeve && !inside) {
+        const s = applyHomography(toSleeve, { x: x + 0.5, y: y + 0.5 });
+        // Distance to the sleeve's edge, in pixels (roughly: the sleeve is nearly upright).
+        const d = Math.min(s.x, 1 - s.x, (s.y * 88) / 63, ((1 - s.y) * 88) / 63) * sleeveW;
+        if (d > -1 && d < 1.5) rgb = [225, 225, 225];
+        else if (d >= 1.5) rgb = rgb.map((c) => c + 15) as Rgb;
+      }
       img.set([...rgb, 255], (y * W + x) * 4);
     }
   }
@@ -73,6 +85,28 @@ describe("detectCardQuad", () => {
     const grassy = (u: number, v: number): Rgb => (v > 0.75 ? [52, 132, 72] : design(u, v));
     const q = detectCardQuad(photo(corners, mat, grassy), W, H);
     expect(worstError(q, corners)).toBeLessThan(3);
+  });
+
+  it("finds the card, not the clear sleeve around it", () => {
+    const corners = cardAt(250, 6);
+    const sleeve = cardAt(262, 6); // ~1.5 mm of plastic on each side
+    const q = detectCardQuad(photo(corners, RED_CLOTH, design, sleeve), W, H);
+    expect(worstError(q, corners)).toBeLessThan(2.5);
+  });
+
+  it("finds the card in a sleeve on a dark mat", () => {
+    const corners = cardAt(240, -4);
+    const sleeve = cardAt(254, -4);
+    const q = detectCardQuad(photo(corners, [30, 30, 35], design, sleeve), W, H);
+    expect(worstError(q, corners)).toBeLessThan(2.5);
+  });
+
+  it("finds the card slid to the bottom of its sleeve", () => {
+    const corners = cardAt(250, 0);
+    // 15 px of empty plastic above the card, 1 px below.
+    const sleeve = cardAt(262, 0).map((p) => ({ x: p.x, y: p.y - 7 }));
+    const q = detectCardQuad(photo(corners, [40, 120, 60], design, sleeve), W, H);
+    expect(worstError(q, corners)).toBeLessThan(2.5);
   });
 
   it("deduces a side that fades into the background", () => {
