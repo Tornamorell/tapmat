@@ -18,8 +18,11 @@ const LINES = 48; // scan lines per side
 const MIN_EDGE = 90; // weakest gradient (sum of the three Sobel channels) considered at all
 const MIN_SUPPORT = 12; // scan lines that must agree on a side
 const PEAKS_PER_LINE = 5;
+const MIN_AREA = 0.2; // of the search area: a card held at ~55 % of the guide's width, with its margin
 const STEP_GAPS = [2, 3, 4, 5, 6]; // px from a candidate, each side, where the mat may show
 const MATCH = 0.25; // colours this close to the mat, per unit of the candidate's contrast, are the mat's
+const MAX_HAZE = 0.45; // most grey a sleeve's plastic mixes into the mat (measured: ~0.22)
+const HAZE_FIT = 15; // per channel, how far a colour may be from the mat-plus-haze it's explained as
 
 /** A 3×3 box blur of the RGB channels: cloth or wood texture shouldn't look like an edge. */
 export function blurRgb(rgba: ArrayLike<number>, w: number, h: number): Float32Array {
@@ -79,8 +82,9 @@ type Candidate = Pt & { line: number; /** Distance from the image edge. */ depth
  * The card's border is one of them, though not always the strongest (green grass printed next
  * to a green mat) nor the first from outside (a mat's texture). Corners are skipped: rounded.
  *
- * Not a clear sleeve's edge: a thin glint with the mat on both sides, seen through the plastic
- * inside. It's straight and further out than the card, so `fitSide` would take it for its side.
+ * Not a sleeve's edge, which is straight and further out than the card, so `fitSide` would take
+ * it for the card's side. A thin sleeve shows a glint with the mat on both sides; a thicker one,
+ * a band of mat hazed by the plastic. Either way the mat goes on inside the candidate.
  */
 function edgeCandidates(
   side: Side,
@@ -115,6 +119,15 @@ function edgeCandidates(
     const isMat = (d: number) => diff(at(fixed, k + d), mat) < MATCH * contrast;
     return STEP_GAPS.some((d) => isMat(-d)) && STEP_GAPS.some(isMat);
   };
+  const color = (fixed: number, k: number) => {
+    const o = at(fixed, k);
+    return [rgb[o], rgb[o + 1], rgb[o + 2]];
+  };
+  // The mat, or the mat through plastic, 2–3 px inside: the card hasn't started yet.
+  const matInside = (fixed: number, k: number) => {
+    const mat = color(fixed, 1);
+    return isMatSeenThrough(color(fixed, k + 2), mat) || isMatSeenThrough(color(fixed, k + 3), mat);
+  };
   for (let i = 0; i < LINES; i++) {
     const fixed = Math.round((0.12 + (0.76 * i) / (LINES - 1)) * (horizontal ? h : w));
     let max = 0;
@@ -129,13 +142,31 @@ function edgeCandidates(
       if (v >= MIN_EDGE && v >= 0.15 * max && v >= values[k - 1] && v > values[k + 1]) peaks.push({ k, v });
     }
     peaks.sort((a, b) => b.v - a.v);
-    const solid = peaks.filter(({ k }) => !seeThrough(fixed, k));
+    const solid = peaks.filter(({ k }) => !seeThrough(fixed, k) && !matInside(fixed, k));
     for (const { k } of solid.slice(0, PEAKS_PER_LINE)) {
       const pos = fromStart ? k : size - 1 - k;
       out.push({ ...(horizontal ? { x: pos, y: fixed } : { x: fixed, y: pos }), line: i, depth: k });
     }
   }
   return out;
+}
+
+/**
+ * Whether `c` is the mat `m`, or the mat seen through a clear sleeve. The plastic mixes some grey
+ * into what's behind it: c = (1 − α)·m + α·grey. Measured on a red mat (2026-10-03): α ≈ 0.22
+ * on every side, grey anywhere from 100 to 210; a card's colours would need α of 0.7 or more.
+ * Per channel cᵢ − mᵢ = β − α·mᵢ, a straight line through the three channels.
+ */
+export function isMatSeenThrough(c: number[], m: number[]): boolean {
+  const d = c.map((v, i) => v - m[i]);
+  const mMean = (m[0] + m[1] + m[2]) / 3;
+  const dMean = (d[0] + d[1] + d[2]) / 3;
+  const varM = m.reduce((s, v) => s + (v - mMean) ** 2, 0);
+  // A grey mat: any grey mixed in shifts all three channels alike, by little.
+  if (varM < 300) return Math.max(...d) - Math.min(...d) <= 2 * HAZE_FIT && Math.abs(dMean) <= 60;
+  const alpha = -m.reduce((s, v, i) => s + (v - mMean) * (d[i] - dMean), 0) / varM;
+  if (alpha < -0.1 || alpha > MAX_HAZE) return false;
+  return d.every((v, i) => Math.abs(v - (dMean - alpha * (m[i] - mMean))) <= HAZE_FIT);
 }
 
 export type Line = { a: number; b: number }; // vertical sides: x = a·y + b; horizontal: y = a·x + b
@@ -255,11 +286,11 @@ export function detectCardQuad(rgba: ArrayLike<number>, w: number, h: number, ba
       };
   if (!quad) return null;
 
-  // A card: about 63×88, and most of the frame.
+  // A card: about 63×88, and a good part of the frame.
   const width = (dist(quad.tl, quad.tr) + dist(quad.bl, quad.br)) / 2;
   const height = (dist(quad.tl, quad.bl) + dist(quad.tr, quad.br)) / 2;
   if (Math.abs(width / height - CARD_RATIO) > 0.12) return null;
-  if (width * height < 0.35 * w * h) return null;
+  if (width * height < MIN_AREA * w * h) return null;
   return quad;
 }
 

@@ -1,5 +1,16 @@
+import { fileURLToPath } from "node:url";
+import sharp from "sharp";
 import { describe, expect, it } from "vitest";
-import { applyHomography, autoLevels, detectCardQuad, homography, warpCard, type Pt, type Quad } from "./card-quad";
+import {
+  applyHomography,
+  autoLevels,
+  detectCardQuad,
+  homography,
+  isMatSeenThrough,
+  warpCard,
+  type Pt,
+  type Quad,
+} from "./card-quad";
 
 type Rgb = [number, number, number];
 const W = 360;
@@ -133,6 +144,44 @@ describe("detectCardQuad", () => {
 
   it("finds nothing on an empty cloth", () => {
     expect(detectCardQuad(photo([], RED_CLOTH, design).fill(128), W, H)).toBeNull();
+  });
+});
+
+/**
+ * Real photos (2026-10-03): Panini cards on a red paper mat, cropped the way the scanner searches
+ * (the card ~55 % of the width) at the detector's 360 px. The corners were checked by eye on the
+ * full-size photo: on the card, not on its sleeve, which sits 2–13 px further out.
+ */
+const REAL: [string, [number, number][]][] = [
+  ["sleeve-dela", [[88, 127], [271, 127], [269, 388], [89, 383]]],
+  ["sleeve-manu-sanchez", [[108, 124], [268, 139], [246, 363], [89, 345]]],
+  ["sleeve-carlos-espi", [[90, 129], [273, 130], [270, 389], [89, 383]]],
+  ["bare-etta-eyong", [[79, 129], [260, 119], [270, 378], [89, 383]]],
+];
+
+describe("detectCardQuad on real photos", () => {
+  it.each(REAL)("%s", async (name, corners) => {
+    const file = fileURLToPath(new URL(`./fixtures/${name}.jpg`, import.meta.url));
+    const { data, info } = await sharp(file).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    const q = detectCardQuad(new Uint8ClampedArray(data), info.width, info.height);
+    expect(worstError(q, corners.map(([x, y]) => ({ x, y })))).toBeLessThan(2.5);
+  });
+});
+
+describe("isMatSeenThrough", () => {
+  // Measured on the photos above: the mat, and the mat through the sleeve on three sides.
+  it("takes the mat through a sleeve for the mat", () => {
+    expect(isMatSeenThrough([223, 95, 92], [236, 70, 72])).toBe(true);
+    expect(isMatSeenThrough([210, 92, 85], [211, 59, 56])).toBe(true);
+    expect(isMatSeenThrough([188, 66, 69], [214, 54, 56])).toBe(true);
+    expect(isMatSeenThrough([45, 45, 52], [30, 30, 35])).toBe(true);
+  });
+
+  it("doesn't take a card's colours for the mat", () => {
+    expect(isMatSeenThrough([108, 96, 87], [208, 59, 60])).toBe(false); // grey-brown design
+    expect(isMatSeenThrough([255, 255, 245], [236, 70, 72])).toBe(false); // white strip
+    expect(isMatSeenThrough([106, 108, 66], [183, 37, 36])).toBe(false); // grass
+    expect(isMatSeenThrough([235, 235, 230], [30, 30, 35])).toBe(false); // white border on black
   });
 });
 

@@ -764,6 +764,28 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
   carta tenía el diseño rojo junto al borde, sobre tapete rojo, y se comió un buen trozo de la
   carta. El color solo no distingue plástico de diseño. Antes de reintentarlo, hacen falta fotos
   reales completas de cartas enfundadas para probar contra ellas, no solo composiciones.
+- **Actualización (2026-10-03, con fotos reales):** el usuario mandó cuatro fotos de cromos
+  Panini sobre papel rojo, tres en funda y una sin. Están en `src/lib/scan/fixtures/`, recortadas
+  como busca el escáner y a 360 px, con sus esquinas comprobadas a ojo, y hay un test por foto.
+  - Medido en ellas: el plástico es el tapete con gris mezclado,
+    c = (1 − α)·tapete + α·gris, con α ≈ 0,22 en todos los lados y el gris entre 100 y 210.
+    Los colores de la carta necesitarían α de 0,7 o más.
+  - `edgeCandidates` descarta, además de los brillos, un candidato si 2–3 px por dentro todavía
+    se ve el tapete o el tapete a través del plástico (`isMatSeenThrough`: α ≤ 0,45 y los tres
+    canales a ≤ 15 de ese modelo; con un tapete gris, un desplazamiento igual en los tres canales).
+    El borde de la funda tiene plástico por dentro y cae. El de la carta tiene la carta por
+    dentro y se queda. A diferencia del intento de antes, no mira franjas enteras: un diseño
+    rojo junto al borde solo quita ese borde en esas líneas de barrido, y las demás bastan.
+  - **Área mínima de 0,35 a 0,2** del área de búsqueda. Con la carta a ~55 % del ancho del
+    recuadro, como sale en las capturas del usuario, ocupa ~0,26 de la zona de búsqueda (el
+    recuadro más un 12 % de margen). Con 0,35 se descartaba siempre y quedaba el recorte del
+    recuadro, con mucho tapete. Las cuatro fotos dan las mismas esquinas llenando el 53 %, el
+    62 % o el 75 % del ancho.
+  - Con el código anterior las cuatro fotos fallan (tres cogen la funda y la sin funda no llega al
+    área mínima). Con este, las cuatro aciertan a menos de 2,5 px. 15–50 ms por foto en un Mac.
+  - Riesgo: una carta con un borde del color del tapete, o del tapete con un poco de gris (un
+    diseño rosa sobre tapete rojo), pierde ese lado en las líneas donde pasa. Si lo pierde entero,
+    se deduce de los otros tres o se queda el recorte del recuadro.
 - **Descartado:**
   - Pedir las esquinas a la IA: imprecisa (arriba).
   - Modelos que generan imágenes: inventarían detalles de la carta.
