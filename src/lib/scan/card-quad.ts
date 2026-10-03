@@ -20,8 +20,6 @@ const MIN_SUPPORT = 12; // scan lines that must agree on a side
 const PEAKS_PER_LINE = 5;
 const STEP_GAPS = [2, 3, 4, 5, 6]; // px from a candidate, each side, where the mat may show
 const MATCH = 0.25; // colours this close to the mat, per unit of the candidate's contrast, are the mat's
-const SLEEVE_GAP = 0.06; // widest band of plastic around a card, as a fraction of the image
-const SLEEVE_BAND = 0.4; // a band this close to the mat, per unit of what's inside it, is plastic
 
 /** A 3×3 box blur of the RGB channels: cloth or wood texture shouldn't look like an edge. */
 export function blurRgb(rgba: ArrayLike<number>, w: number, h: number): Float32Array {
@@ -142,31 +140,14 @@ function edgeCandidates(
 
 export type Line = { a: number; b: number }; // vertical sides: x = a·y + b; horizontal: y = a·x + b
 
-type Fit = { support: number; depth: number; inliers: Candidate[] };
-
-/** Of these straight lines, the outermost among the well supported. */
-function outermost(found: Fit[]): Fit {
-  const best = Math.max(...found.map((f) => f.support));
-  return found
-    .filter((f) => f.support >= 0.6 * best)
-    .reduce((p, f) => (f.depth < p.depth - 1 || (Math.abs(f.depth - p.depth) <= 1 && f.support > p.support) ? f : p));
-}
-
 /**
  * The card's side among the candidates: of the straight lines that many scan lines agree on,
- * the outermost. The design's inner frame is straight too, but inside. `inSleeve` says whether
- * an outer line is a sleeve's around an inner one: then the inner one, if close enough.
+ * the outermost. The design's inner frame is straight too, but inside.
  */
-function fitSide(
-  cands: Candidate[],
-  vertical: boolean,
-  maxGap: number,
-  inSleeve: (outer: Fit, inner: Fit) => boolean,
-  tol = 1.5,
-): Line | null {
+function fitSide(cands: Candidate[], vertical: boolean, tol = 1.5): Line | null {
   const u = (p: Pt) => (vertical ? p.y : p.x);
   const v = (p: Pt) => (vertical ? p.x : p.y);
-  const found: Fit[] = [];
+  const found: { support: number; depth: number; inliers: Candidate[] }[] = [];
   for (let i = 0; i < cands.length; i++) {
     for (let j = i + 1; j < cands.length; j++) {
       // Points far apart along the side pin the line down; neighbours don't.
@@ -188,14 +169,10 @@ function fitSide(
     }
   }
   if (!found.length) return null;
-  let pick = outermost(found);
-  for (let peeled = 0; peeled < 2; peeled++) {
-    const inside = found.filter((f) => f.depth > pick.depth + 3 && f.depth <= pick.depth + maxGap);
-    if (!inside.length) break;
-    const inner = outermost(inside);
-    if (!inSleeve(pick, inner)) break;
-    pick = inner;
-  }
+  const best = Math.max(...found.map((f) => f.support));
+  const pick = found
+    .filter((f) => f.support >= 0.6 * best)
+    .reduce((p, f) => (f.depth < p.depth - 1 || (Math.abs(f.depth - p.depth) <= 1 && f.support > p.support) ? f : p));
 
   // Least squares on the chosen line's points.
   const pts = pick.inliers;
@@ -208,37 +185,6 @@ function fitSide(
   if (Math.abs(den) < 1e-9) return null;
   const a = (n * suv - su * sv) / den;
   return { a, b: (sv - a * su) / n };
-}
-
-/**
- * Whether the band between two lines on a side is a sleeve's plastic: the mat seen through it,
- * a shade lighter or hazier, but much closer to the mat than what's inside the inner line.
- * A card's border, between its edge and the design's frame, isn't the mat's colour.
- */
-function sleeveBand(rgb: Float32Array, w: number, h: number, side: Side, outer: Fit, inner: Fit): boolean {
-  const vertical = side === "left" || side === "right";
-  const at = (fixed: number, depth: number) => {
-    const d = Math.round(Math.min(Math.max(depth, 0), (vertical ? w : h) - 1));
-    const x = vertical ? (side === "left" ? d : w - 1 - d) : fixed;
-    const y = vertical ? fixed : side === "top" ? d : h - 1 - d;
-    return (y * w + x) * 3;
-  };
-  const diff = (o: number, i: number) =>
-    Math.abs(rgb[o] - rgb[i]) + Math.abs(rgb[o + 1] - rgb[i + 1]) + Math.abs(rgb[o + 2] - rgb[i + 2]);
-  const innerByLine = new Map(inner.inliers.map((c) => [c.line, c]));
-  const ratios: number[] = [];
-  for (const o of outer.inliers) {
-    const i = innerByLine.get(o.line);
-    if (!i) continue;
-    const fixed = vertical ? o.y : o.x;
-    const mat = at(fixed, o.depth - 3);
-    const band = at(fixed, (o.depth + i.depth) / 2);
-    const beyond = at(fixed, i.depth + 3);
-    ratios.push(diff(band, mat) / Math.max(1, diff(beyond, mat)));
-  }
-  if (ratios.length < MIN_SUPPORT / 2) return false;
-  ratios.sort((a, b) => a - b);
-  return ratios[Math.floor(ratios.length / 2)] < SLEEVE_BAND;
 }
 
 /** Where a vertical-ish side (x = a·y + b) meets a horizontal-ish one (y = a·x + b). */
@@ -291,14 +237,12 @@ function complete(s: Record<Side, Line | null>, missing: Side): Quad | null {
 export function detectCardQuad(rgba: ArrayLike<number>, w: number, h: number, band = 0.3): Quad | null {
   const rgb = blurRgb(rgba, w, h);
   const g = gradients(rgb, w, h);
-  const side = (s: Side) => {
-    const vertical = s === "left" || s === "right";
-    const size = vertical ? w : h;
-    return fitSide(edgeCandidates(s, rgb, g, w, h, band), vertical, SLEEVE_GAP * size, (outer, inner) =>
-      sleeveBand(rgb, w, h, s, outer, inner),
-    );
+  const sides: Record<Side, Line | null> = {
+    left: fitSide(edgeCandidates("left", rgb, g, w, h, band), true),
+    right: fitSide(edgeCandidates("right", rgb, g, w, h, band), true),
+    top: fitSide(edgeCandidates("top", rgb, g, w, h, band), false),
+    bottom: fitSide(edgeCandidates("bottom", rgb, g, w, h, band), false),
   };
-  const sides: Record<Side, Line | null> = { left: side("left"), right: side("right"), top: side("top"), bottom: side("bottom") };
   const missing = (Object.keys(sides) as Side[]).filter((s) => !sides[s]);
   if (missing.length > 1) return null;
   const quad: Quad | null = missing.length
