@@ -757,6 +757,18 @@ Estados posibles: `provisional`, `sustituida por Dnn` o `descartada`.
     de la funda): 0–1,5 px de error, estable con tolerancias de 15 % a 35 %.
   - No resuelve fundas con el dorso de color (por dentro del canto se ve el color del dorso, no
     el tapete) ni el doble enfundado opaco: ahí seguiría cogiendo la funda.
+- **Actualización (2026-10-03, funda gruesa sobre tapete rojo):** con una foto real del usuario
+  (cromo de fútbol en funda, tapete rojo) seguía recortando por la funda. Ese plástico no da un
+  brillo fino sino una franja de 7–12 px (a 360 px) más pálida: tapete 205/58/55, a través de la
+  funda 190/76/68. Es un escalón de verdad, y el filtro de antes no lo toca.
+  - Ahora `fitSide`, tras elegir la recta más exterior, mira si hay otra bien apoyada hasta un
+    6 % de la imagen más adentro. Si la franja entre las dos se parece al tapete mucho más que
+    lo que hay dentro de la interior (mediana de diferencia franja–tapete / dentro–tapete
+    < 0,4), la franja es plástico y se queda con la interior. Hasta dos veces (doble funda).
+  - En la foto real esa proporción es 0,2–0,32 en los tres lados visibles. Los tests pasan con
+    umbrales de 0,25 a 0,6. Sin el cambio, la funda sintética se desviaba 17 px.
+  - Riesgo: una carta con el borde casi del color del tapete perdería el borde al recortar
+    (hay un test con borde rosa pálido sobre rojo que lo conserva).
 - **Descartado:**
   - Pedir las esquinas a la IA: imprecisa (arriba).
   - Modelos que generan imágenes: inventarían detalles de la carta.

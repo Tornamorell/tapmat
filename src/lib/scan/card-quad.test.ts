@@ -30,7 +30,14 @@ const UNIT = [
  * down the card). With `sleeve`, the card is in a clear sleeve with those corners: a thin glint
  * along its edge, the cloth a shade lighter through the plastic.
  */
-function photo(corners: Pt[], cloth: Rgb, design: (u: number, v: number) => Rgb, sleeve?: Pt[]): Uint8ClampedArray {
+function photo(
+  corners: Pt[],
+  cloth: Rgb,
+  design: (u: number, v: number) => Rgb,
+  sleeve?: Pt[],
+  /** A thicker, hazier sleeve: no glint, the cloth paler through it. */
+  hazy = false,
+): Uint8ClampedArray {
   const toCard = homography(corners, UNIT);
   const toSleeve = sleeve && homography(sleeve, UNIT);
   const sleeveW = sleeve ? Math.hypot(sleeve[1].x - sleeve[0].x, sleeve[1].y - sleeve[0].y) : 1;
@@ -47,7 +54,8 @@ function photo(corners: Pt[], cloth: Rgb, design: (u: number, v: number) => Rgb,
         const s = applyHomography(toSleeve, { x: x + 0.5, y: y + 0.5 });
         // Distance to the sleeve's edge, in pixels (roughly: the sleeve is nearly upright).
         const d = Math.min(s.x, 1 - s.x, (s.y * 88) / 63, ((1 - s.y) * 88) / 63) * sleeveW;
-        if (d > -1 && d < 1.5) rgb = [225, 225, 225];
+        if (hazy && d >= 0) rgb = rgb.map((c, i) => c * 0.85 + [160, 160, 150][i] * 0.15) as Rgb;
+        else if (d > -1 && d < 1.5) rgb = [225, 225, 225];
         else if (d >= 1.5) rgb = rgb.map((c) => c + 15) as Rgb;
       }
       img.set([...rgb, 255], (y * W + x) * 4);
@@ -98,6 +106,25 @@ describe("detectCardQuad", () => {
     const corners = cardAt(240, -4);
     const sleeve = cardAt(254, -4);
     const q = detectCardQuad(photo(corners, [30, 30, 35], design, sleeve), W, H);
+    expect(worstError(q, corners)).toBeLessThan(2.5);
+  });
+
+  it("finds the card in a hazy sleeve, with the cloth paler through the plastic", () => {
+    // Measured on a real photo (2026-10-03): red mat 205/58/55, through the sleeve 190/76/68,
+    // ~7 px of plastic on the sides and ~12 above the card at this size.
+    const corners = cardAt(250, 2);
+    const sleeve = cardAt(264, 2).map((p) => ({ x: p.x, y: p.y - 3 }));
+    const q = detectCardQuad(photo(corners, [205, 58, 55], design, sleeve, true), W, H);
+    expect(worstError(q, corners)).toBeLessThan(2.5);
+  });
+
+  it("keeps a card's border that is close to the cloth but not the cloth", () => {
+    // A pale pink border on a red cloth: the border's colour differs from the cloth by as much
+    // as the design inside does, so it isn't taken for plastic.
+    const corners = cardAt(250, 3);
+    const pink = (u: number, v: number): Rgb =>
+      u < 0.03 || u > 0.97 || v < 0.02 || v > 0.98 ? [230, 140, 140] : design(u, v);
+    const q = detectCardQuad(photo(corners, RED_CLOTH, pink), W, H);
     expect(worstError(q, corners)).toBeLessThan(2.5);
   });
 
